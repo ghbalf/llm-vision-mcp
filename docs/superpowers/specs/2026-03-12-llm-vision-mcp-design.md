@@ -191,8 +191,43 @@ Designed so additional tools (`extract_text`, `analyze_chart`, `compare_images`)
 
 1. `.env` file (loaded via `dotenv` at startup)
 2. Environment variables (override `.env`)
-3. Config file `vision-config.json` (with `${ENV_VAR}` interpolation)
-4. Per-request overrides (provider/model params on tool calls)
+3. CLI arguments (override env vars)
+4. Config file `vision-config.json` (with `${ENV_VAR}` interpolation)
+5. Per-request overrides (provider/model params on tool calls)
+
+### CLI Arguments
+
+For simple single-provider setups, the server can be fully configured via command line flags — no files needed.
+
+```
+--provider <name>              Default provider (openai, anthropic, google, ollama)
+--openai-api-key <key>         OpenAI API key
+--anthropic-api-key <key>      Anthropic API key
+--google-api-key <key>         Google API key
+--ollama-base-url <url>        Ollama base URL (default: http://localhost:11434)
+--ollama-model <model>         Ollama model (default: llava)
+--model <model>                Default model for the default provider
+--config <path>                Path to config file (overrides VISION_CONFIG_PATH)
+```
+
+This is especially useful in MCP client manifests like Claude Desktop's config:
+
+```json
+{
+  "mcpServers": {
+    "vision": {
+      "command": "node",
+      "args": [
+        "dist/index.js",
+        "--provider", "openai",
+        "--openai-api-key", "sk-..."
+      ]
+    }
+  }
+}
+```
+
+CLI args are parsed with Node.js built-in `util.parseArgs` (no extra dependency needed).
 
 ### Environment Variables
 
@@ -254,7 +289,7 @@ VISION_CONFIG_PATH=./vision-config.json  # Resolved relative to CWD of the MCP s
 }
 ```
 
-Config file supports `${ENV_VAR}` interpolation so API keys never live in the file. A `.env` file is sufficient for simple single-provider setups; the config file is only needed for advanced configurations.
+Config file supports `${ENV_VAR}` interpolation so API keys never live in the file. For simple setups, CLI args or a `.env` file are sufficient; the config file is only needed for advanced multi-provider configurations.
 
 ### Provider Type Resolution in Config File
 
