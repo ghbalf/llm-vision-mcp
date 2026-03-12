@@ -1,0 +1,233 @@
+# llm-vision-mcp
+
+An MCP server that gives vision capabilities to any LLM. It accepts images (file paths, URLs, or base64) and sends them to a vision-capable LLM, returning text descriptions that non-vision LLMs can use.
+
+## Providers
+
+| Provider | Default Model | Use Case |
+|---|---|---|
+| **OpenAI** | gpt-4o | General-purpose vision |
+| **Anthropic** | claude-sonnet-4-latest | Detailed image analysis |
+| **Google** | gemini-2.0-flash | Fast, cost-effective vision |
+| **Ollama** | llava | Local/private inference |
+| **OpenAI-compatible** | User-configured | DeepSeek, Qwen-VL, Together, etc. |
+| **Generic HTTP** | N/A | Any API with custom request/response mapping |
+
+## Quick Start
+
+```bash
+npm install
+npm run build
+```
+
+### Option 1: CLI arguments (simplest)
+
+```bash
+node dist/index.js --provider openai --openai-api-key sk-...
+```
+
+### Option 2: Environment variables
+
+```bash
+cp .env.example .env
+# Edit .env with your API keys
+node dist/index.js
+```
+
+### Option 3: Config file (multi-provider)
+
+```bash
+cp config.example.json vision-config.json
+# Edit vision-config.json
+VISION_CONFIG_PATH=./vision-config.json node dist/index.js
+```
+
+## MCP Client Configuration
+
+### Claude Desktop
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "vision": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/llm-vision-mcp/dist/index.js",
+        "--provider", "openai",
+        "--openai-api-key", "sk-..."
+      ]
+    }
+  }
+}
+```
+
+### Claude Code
+
+Add to your `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "vision": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/llm-vision-mcp/dist/index.js",
+        "--provider", "openai",
+        "--openai-api-key", "sk-..."
+      ]
+    }
+  }
+}
+```
+
+## Tool: `describe_image`
+
+Sends an image to a vision LLM and returns a text description.
+
+### Parameters
+
+| Parameter | Required | Description |
+|---|---|---|
+| `image` | Yes | File path, URL, or base64-encoded image data |
+| `prompt` | No | Custom instruction (default: "Describe this image in detail.") |
+| `provider` | No | Override the default provider |
+| `model` | No | Override the provider's default model |
+
+### Image Input Formats
+
+- **File path**: `/home/user/photo.png` or `./images/chart.jpg`
+- **URL**: `https://example.com/image.png`
+- **Base64 data URL**: `data:image/png;base64,iVBOR...`
+- **Raw base64**: Long base64 string (auto-detected)
+
+### Examples
+
+```
+"Describe this screenshot" + image: "/tmp/screenshot.png"
+"Extract all text from this image" + image: "https://example.com/document.png"
+"What data does this chart show?" + image: "data:image/png;base64,..."
+```
+
+## Configuration
+
+Configuration sources are loaded in this order (later overrides earlier):
+
+1. `.env` file
+2. Environment variables
+3. CLI arguments
+4. Config file (`vision-config.json`)
+5. Per-request `provider` and `model` parameters
+
+### CLI Arguments
+
+```
+--provider <name>              Default provider
+--openai-api-key <key>         OpenAI API key
+--anthropic-api-key <key>      Anthropic API key
+--google-api-key <key>         Google API key
+--ollama-base-url <url>        Ollama URL (default: http://localhost:11434)
+--ollama-model <model>         Ollama model (default: llava)
+--model <model>                Default model for the default provider
+--config <path>                Path to config file
+```
+
+### Environment Variables
+
+```bash
+VISION_DEFAULT_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_API_KEY=AIza...
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llava
+VISION_CONFIG_PATH=./vision-config.json
+```
+
+### Config File
+
+See [`config.example.json`](config.example.json) for a full example with all providers.
+
+The config file supports `${ENV_VAR}` interpolation — API keys can reference environment variables so they never appear in the file.
+
+### Custom Providers
+
+#### OpenAI-compatible (DeepSeek, Qwen-VL, etc.)
+
+Most Chinese LLM providers expose an OpenAI-compatible API:
+
+```json
+{
+  "providers": {
+    "deepseek": {
+      "type": "openai-compatible",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "apiKey": "${DEEPSEEK_API_KEY}",
+      "model": "deepseek-vl2"
+    }
+  }
+}
+```
+
+#### Generic HTTP (any API)
+
+For APIs with non-standard request/response formats:
+
+```json
+{
+  "providers": {
+    "custom": {
+      "type": "generic-http",
+      "url": "https://my-api.example.com/vision",
+      "headers": { "Authorization": "Bearer ${API_KEY}" },
+      "requestTemplate": {
+        "image": "{{image}}",
+        "prompt": "{{prompt}}",
+        "type": "{{mimeType}}"
+      },
+      "imageFormat": "base64",
+      "responsePath": "result.text"
+    }
+  }
+}
+```
+
+Template placeholders: `{{image}}`, `{{prompt}}`, `{{mimeType}}`
+
+`imageFormat`: `"base64"` (raw) or `"data-url"` (`data:image/png;base64,...`)
+
+`responsePath`: Dot-notation path to extract the text from the JSON response (e.g., `choices.0.message.content`)
+
+## Image Preprocessing
+
+Images are automatically preprocessed before being sent to providers:
+
+- **Format conversion**: Unsupported formats (e.g., WEBP for providers that don't support it) are converted to PNG
+- **Resizing**: Images exceeding 2048x2048 are resized to fit (configurable)
+- **Compression**: Images exceeding 20MB are JPEG-compressed at decreasing quality levels
+
+Preprocessing options can be customized in the config file:
+
+```json
+{
+  "preprocessing": {
+    "maxWidth": 2048,
+    "maxHeight": 2048,
+    "maxFileSizeBytes": 20971520
+  }
+}
+```
+
+## Development
+
+```bash
+npm test              # Run tests
+npm run test:watch    # Watch mode
+npm run build         # Compile TypeScript
+npm run dev           # Watch mode compilation
+```
+
+## License
+
+ISC
