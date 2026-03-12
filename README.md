@@ -82,6 +82,10 @@ Add to your `.mcp.json`:
 }
 ```
 
+## Prompt: `vision_instructions`
+
+The server registers an MCP prompt called `vision_instructions` that teaches the LLM when and how to use the `describe_image` tool. MCP clients that support prompts can inject this into the LLM's context so it automatically calls the tool whenever it encounters image paths, URLs, or base64 data — rather than guessing what an image contains.
+
 ## Tool: `describe_image`
 
 Sends an image to a vision LLM and returns a text description.

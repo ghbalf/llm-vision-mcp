@@ -46,6 +46,40 @@ export function createServer(
     { capabilities: { logging: {} } },
   );
 
+  const providerList = registry.listProviders().join(", ");
+
+  server.prompt(
+    "vision_instructions",
+    "Instructions for using the vision tool to understand images",
+    async () => ({
+      messages: [
+        {
+          role: "user" as const,
+          content: {
+            type: "text" as const,
+            text: [
+              "You have access to a vision tool called `describe_image` that can analyze images for you.",
+              "Use it whenever you encounter:",
+              "- File paths to images (e.g., /path/to/image.png, ./screenshot.jpg)",
+              "- URLs pointing to images (e.g., https://example.com/photo.png)",
+              "- Base64-encoded image data (e.g., data:image/png;base64,...)",
+              "- Any user request that involves understanding, describing, or extracting information from an image",
+              "",
+              "The tool accepts an `image` parameter (the path, URL, or base64 data) and an optional `prompt` parameter",
+              "to focus the analysis (e.g., \"extract all text\", \"describe the chart data\", \"what colors are used\").",
+              "",
+              `Available vision providers: ${providerList}.`,
+              "You can optionally specify a `provider` or `model` parameter to override the defaults.",
+              "",
+              "When a user shares an image or mentions one, always call `describe_image` to understand its content",
+              "before responding — do not guess or assume what the image contains.",
+            ].join("\n"),
+          },
+        },
+      ],
+    }),
+  );
+
   server.tool(
     "describe_image",
     "Sends an image to a vision-capable LLM and returns a text description",
