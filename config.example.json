@@ -1,0 +1,46 @@
+{
+  "defaultProvider": "openai",
+  "providers": {
+    "openai": {
+      "apiKey": "${OPENAI_API_KEY}",
+      "model": "gpt-4o"
+    },
+    "anthropic": {
+      "apiKey": "${ANTHROPIC_API_KEY}",
+      "model": "claude-sonnet-4-latest"
+    },
+    "google": {
+      "apiKey": "${GOOGLE_API_KEY}",
+      "model": "gemini-2.0-flash"
+    },
+    "ollama": {
+      "baseUrl": "http://localhost:11434",
+      "model": "llava",
+      "timeout": 180000
+    },
+    "deepseek": {
+      "type": "openai-compatible",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "apiKey": "${DEEPSEEK_API_KEY}",
+      "model": "deepseek-vl2"
+    },
+    "custom": {
+      "type": "generic-http",
+      "url": "https://my-api.example.com/vision",
+      "headers": {
+        "Authorization": "Bearer ${CUSTOM_API_KEY}"
+      },
+      "requestTemplate": {
+        "image": "{{image}}",
+        "prompt": "{{prompt}}"
+      },
+      "imageFormat": "base64",
+      "responsePath": "result.text"
+    }
+  },
+  "preprocessing": {
+    "maxWidth": 2048,
+    "maxHeight": 2048,
+    "maxFileSizeBytes": 20971520
+  }
+}
