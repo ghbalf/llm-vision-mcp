@@ -4,6 +4,8 @@ import sharp from "sharp";
 import type { ImageInput, ImageFormat, PreprocessingOptions } from "../types.js";
 import { URL_FETCH_TIMEOUT_MS } from "../types.js";
 
+const MAX_URL_DOWNLOAD_BYTES = 50 * 1024 * 1024; // 50MB
+
 const MAGIC_BYTES: Record<string, ImageFormat> = {
   "89504e47": "image/png",
   "ffd8ff": "image/jpeg",
@@ -15,6 +17,12 @@ function detectMimeFromBytes(data: Buffer): ImageFormat | undefined {
   const hex = data.subarray(0, 4).toString("hex").toLowerCase();
   for (const [magic, mime] of Object.entries(MAGIC_BYTES)) {
     if (hex.startsWith(magic)) return mime;
+  }
+  // AVIF uses ISOBMFF container: "ftyp" at offset 4, "avif" at offset 8
+  if (data.length >= 12) {
+    const ftyp = data.subarray(4, 8).toString("ascii");
+    const brand = data.subarray(8, 12).toString("ascii");
+    if (ftyp === "ftyp" && brand === "avif") return "image/avif";
   }
   return undefined;
 }
@@ -78,12 +86,30 @@ export async function resolveImage(image: string): Promise<ImageInput> {
         const response = await fetch(image, { signal: controller.signal });
         if (!response.ok) throw new Error(`HTTP ${response.status} fetching image: ${image}`);
 
-        const arrayBuf = await response.arrayBuffer();
-        const data = Buffer.from(arrayBuf);
-
-        if (data.length > 50 * 1024 * 1024) {
-          throw new Error(`Image too large: ${data.length} bytes (max 50MB)`);
+        // Early size check from Content-Length header
+        const contentLength = response.headers.get("content-length");
+        if (contentLength && parseInt(contentLength, 10) > MAX_URL_DOWNLOAD_BYTES) {
+          throw new Error(`Image too large: ${contentLength} bytes (max 50MB)`);
         }
+
+        // Stream with size limit to protect against missing/lying Content-Length
+        const chunks: Uint8Array[] = [];
+        let totalBytes = 0;
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error(`No response body from URL: ${image}`);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          totalBytes += value.byteLength;
+          if (totalBytes > MAX_URL_DOWNLOAD_BYTES) {
+            reader.cancel();
+            throw new Error(`Image too large: exceeded 50MB during download`);
+          }
+          chunks.push(value);
+        }
+
+        const data = Buffer.concat(chunks);
 
         const contentType = response.headers.get("content-type");
         let mimeType: ImageFormat | undefined;
@@ -120,15 +146,16 @@ export async function preprocessImage(
   let { data, mimeType } = input;
   let pipeline = sharp(data);
 
+  // Read metadata from the same pipeline instance (avoids decoding twice)
+  const metadata = await pipeline.metadata();
+  const { width = 0, height = 0 } = metadata;
+
   // Stage 1: Format conversion if needed
   if (!supportedFormats.includes(mimeType)) {
-    pipeline = pipeline.png();
+    // Re-create pipeline since metadata() consumed it
+    pipeline = sharp(data).png();
     mimeType = "image/png";
   }
-
-  // Stage 2: Resize if exceeding limits
-  const metadata = await sharp(data).metadata();
-  const { width = 0, height = 0 } = metadata;
 
   if (width > options.maxWidth || height > options.maxHeight) {
     pipeline = pipeline.resize(options.maxWidth, options.maxHeight, { fit: "inside" });

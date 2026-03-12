@@ -8,12 +8,14 @@ export class OllamaProvider implements VisionProvider {
   private baseUrl: string;
   private defaultModel: string;
   private timeout: number;
+  private maxTokens: number;
   private defaultPrompt: string;
 
   constructor(config: ProviderConfig) {
     this.baseUrl = (config.baseUrl ?? "http://localhost:11434").replace(/\/$/, "");
     this.defaultModel = config.model ?? "llava";
     this.timeout = config.timeout ?? OLLAMA_DEFAULT_TIMEOUT_MS;
+    this.maxTokens = config.maxTokens ?? DEFAULT_MAX_TOKENS;
     this.defaultPrompt = config.defaultPrompt ?? DEFAULT_PROMPT;
   }
 
@@ -30,6 +32,7 @@ export class OllamaProvider implements VisionProvider {
         body: JSON.stringify({
           model: options.model ?? this.defaultModel,
           stream: false,
+          options: { num_predict: options.maxTokens ?? this.maxTokens },
           messages: [
             {
               role: "user",
