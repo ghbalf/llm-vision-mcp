@@ -10,19 +10,24 @@ export class GoogleProvider implements VisionProvider {
   private defaultModel: string;
   private maxTokens: number;
   private defaultPrompt: string;
+  private timeout: number | undefined;
 
   constructor(config: ProviderConfig) {
     this.ai = new GoogleGenerativeAI(config.apiKey ?? "");
     this.defaultModel = config.model ?? "gemini-2.0-flash";
     this.maxTokens = config.maxTokens ?? DEFAULT_MAX_TOKENS;
     this.defaultPrompt = config.defaultPrompt ?? DEFAULT_PROMPT;
+    this.timeout = config.timeout;
   }
 
   async describeImage(input: ImageInput, options: DescribeOptions): Promise<string> {
-    const model = this.ai.getGenerativeModel({
-      model: options.model ?? this.defaultModel,
-      generationConfig: { maxOutputTokens: options.maxTokens ?? this.maxTokens },
-    });
+    const model = this.ai.getGenerativeModel(
+      {
+        model: options.model ?? this.defaultModel,
+        generationConfig: { maxOutputTokens: options.maxTokens ?? this.maxTokens },
+      },
+      this.timeout !== undefined ? { timeout: this.timeout } : undefined,
+    );
 
     const base64 = input.data.toString("base64");
 

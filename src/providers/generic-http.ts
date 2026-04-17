@@ -47,6 +47,18 @@ export class GenericHttpProvider implements VisionProvider {
   private defaultPrompt: string;
 
   constructor(name: string, config: GenericHttpProviderConfig) {
+    if (typeof config.url !== "string" || config.url.length === 0) {
+      throw new Error(`GenericHttpProvider "${name}": config.url must be a non-empty string`);
+    }
+    if (typeof config.responsePath !== "string" || config.responsePath.length === 0) {
+      throw new Error(
+        `GenericHttpProvider "${name}": config.responsePath must be a non-empty string`,
+      );
+    }
+    if (config.requestTemplate === null || config.requestTemplate === undefined) {
+      throw new Error(`GenericHttpProvider "${name}": config.requestTemplate is required`);
+    }
+
     this.name = name;
     this.config = config;
     this.timeout = config.timeout ?? DEFAULT_PROVIDER_TIMEOUT_MS;

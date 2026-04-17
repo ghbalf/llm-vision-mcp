@@ -21,6 +21,15 @@ describe("detectInputType", () => {
   it("detects file path with dots and slashes (not base64)", () => {
     expect(detectInputType("images/my.photo.png")).toBe("file");
   });
+
+  it("detects raw base64 for long base64-only string", () => {
+    const b64 = "A".repeat(120);
+    expect(detectInputType(b64)).toBe("raw-base64");
+  });
+
+  it("does not detect raw-base64 for short strings", () => {
+    expect(detectInputType("AAAA")).toBe("file");
+  });
 });
 
 describe("resolveImage", () => {
@@ -52,6 +61,30 @@ describe("resolveImage", () => {
 
   it("throws on nonexistent file", async () => {
     await expect(resolveImage("/nonexistent/file.png")).rejects.toThrow();
+  });
+
+  it("resolves raw base64 PNG via magic-byte detection", async () => {
+    // PNG magic (8 bytes) + zero padding. Encodes to 136 base64 chars with no '/' or '.',
+    // so it satisfies detectInputType's raw-base64 rules. We're testing resolveImage's
+    // magic-byte detection path, not full PNG decoding.
+    const buf = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(92),
+    ]);
+    const b64 = buf.toString("base64");
+
+    expect(detectInputType(b64)).toBe("raw-base64");
+    const result = await resolveImage(b64);
+    expect(result.mimeType).toBe("image/png");
+    expect(result.originalSource).toBe("base64");
+    expect(Buffer.isBuffer(result.data)).toBe(true);
+  });
+
+  it("falls back to file path when raw-base64 has no valid magic bytes", async () => {
+    // 100+ char pure-base64 string whose decoded bytes are "aaaa..." — not a known image format.
+    const b64 = Buffer.from("a".repeat(100)).toString("base64");
+    expect(detectInputType(b64)).toBe("raw-base64");
+    await expect(resolveImage(b64)).rejects.toThrow();
   });
 });
 

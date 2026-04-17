@@ -97,6 +97,21 @@ describe("GenericHttpProvider", () => {
     expect(result).toBe("Custom description");
   });
 
+  it("throws on construction when url is missing", () => {
+    const bad = { ...config, url: "" };
+    expect(() => new GenericHttpProvider("bad", bad)).toThrow(/url/i);
+  });
+
+  it("throws on construction when responsePath is missing", () => {
+    const bad = { ...config, responsePath: "" };
+    expect(() => new GenericHttpProvider("bad", bad)).toThrow(/responsePath/i);
+  });
+
+  it("throws on construction when requestTemplate is null/undefined", () => {
+    const bad = { ...config, requestTemplate: undefined };
+    expect(() => new GenericHttpProvider("bad", bad)).toThrow(/requestTemplate/i);
+  });
+
   it("uses data-url format when configured", async () => {
     const dataUrlConfig: GenericHttpProviderConfig = { ...config, imageFormat: "data-url" };
     const dataUrlProvider = new GenericHttpProvider("custom2", dataUrlConfig);

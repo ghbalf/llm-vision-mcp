@@ -1,18 +1,17 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OpenAIProvider } from "../../src/providers/openai.js";
 import type { ImageInput } from "../../src/types.js";
 
-// Mock the openai package
+const { mockCreate } = vi.hoisted(() => ({
+  mockCreate: vi.fn().mockResolvedValue({
+    choices: [{ message: { content: "A red square on white background" } }],
+  }),
+}));
+
 vi.mock("openai", () => {
   return {
     default: class MockOpenAI {
-      chat = {
-        completions: {
-          create: vi.fn().mockResolvedValue({
-            choices: [{ message: { content: "A red square on white background" } }],
-          }),
-        },
-      };
+      chat = { completions: { create: mockCreate } };
       constructor(public opts: Record<string, unknown>) {}
     },
   };
@@ -20,6 +19,10 @@ vi.mock("openai", () => {
 
 describe("OpenAIProvider", () => {
   const provider = new OpenAIProvider({ apiKey: "sk-test" });
+
+  beforeEach(() => {
+    mockCreate.mockClear();
+  });
 
   it("has correct name", () => {
     expect(provider.name).toBe("openai");
@@ -49,6 +52,12 @@ describe("OpenAIProvider", () => {
       originalSource: "test.png",
     };
     await provider.describeImage(input, { prompt: "Extract all text" });
-    expect(true).toBe(true);
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    const payload = mockCreate.mock.calls[0][0] as {
+      messages: Array<{ content: Array<{ type: string; text?: string }> }>;
+    };
+    const textPart = payload.messages[0].content.find((c) => c.type === "text");
+    expect(textPart?.text).toBe("Extract all text");
   });
 });
