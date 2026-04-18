@@ -172,4 +172,17 @@ describe("GenericHttpProvider usage", () => {
     );
     expect(result.usage).toEqual({ inputTokens: 0, outputTokens: 0, totalTokens: 99 });
   });
+
+  it("returns usage: undefined when usagePath is configured but field missing in response", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ result: { text: "ok" } }),
+    });
+    const p = new GenericHttpProvider("custom", { ...config, usagePath: "tokens.total" });
+    const result = await p.describeImage(
+      { data: Buffer.from("x"), mimeType: "image/png", originalSource: "t.png" },
+      {},
+    );
+    expect(result.usage).toBeUndefined();
+  });
 });

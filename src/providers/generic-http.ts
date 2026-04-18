@@ -101,9 +101,11 @@ export class GenericHttpProvider implements VisionProvider {
       let usage: UsageInfo | undefined;
       if (this.config.usagePath) {
         const raw = extractByPath(data, this.config.usagePath);
-        const total = Number(raw);
-        if (Number.isFinite(total)) {
-          usage = { inputTokens: 0, outputTokens: 0, totalTokens: total };
+        if (raw !== "") {
+          const total = Number(raw);
+          if (Number.isFinite(total)) {
+            usage = { inputTokens: 0, outputTokens: 0, totalTokens: total };
+          }
         }
       }
       return { text, usage };
