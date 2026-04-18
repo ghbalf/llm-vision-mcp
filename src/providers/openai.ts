@@ -44,6 +44,14 @@ export class OpenAIProvider implements VisionProvider {
     });
 
     const text = response.choices[0]?.message?.content ?? "";
-    return { text, usage: undefined };
+    const u = response.usage;
+    const usage = u
+      ? {
+          inputTokens: u.prompt_tokens,
+          outputTokens: u.completion_tokens,
+          totalTokens: u.total_tokens,
+        }
+      : undefined;
+    return { text, usage };
   }
 }

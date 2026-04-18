@@ -5,6 +5,7 @@ import type { ImageInput } from "../../src/types.js";
 const { mockCreate } = vi.hoisted(() => ({
   mockCreate: vi.fn().mockResolvedValue({
     choices: [{ message: { content: "A red square on white background" } }],
+    usage: { prompt_tokens: 120, completion_tokens: 15, total_tokens: 135 },
   }),
 }));
 
@@ -59,5 +60,28 @@ describe("OpenAIProvider", () => {
     };
     const textPart = payload.messages[0].content.find((c) => c.type === "text");
     expect(textPart?.text).toBe("Extract all text");
+  });
+
+  it("maps SDK usage to VisionResult.usage", async () => {
+    const input: ImageInput = {
+      data: Buffer.from("fake-image-data"),
+      mimeType: "image/png",
+      originalSource: "test.png",
+    };
+    const result = await provider.describeImage(input, {});
+    expect(result.usage).toEqual({ inputTokens: 120, outputTokens: 15, totalTokens: 135 });
+  });
+
+  it("returns usage: undefined when SDK response lacks usage", async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: "no usage this time" } }],
+    });
+    const input: ImageInput = {
+      data: Buffer.from("fake"),
+      mimeType: "image/png",
+      originalSource: "test.png",
+    };
+    const result = await provider.describeImage(input, {});
+    expect(result.usage).toBeUndefined();
   });
 });
