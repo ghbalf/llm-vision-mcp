@@ -67,4 +67,8 @@ export class ProviderRegistry {
   listProviders(): string[] {
     return [...this.entries.keys()];
   }
+
+  getDefaultProviderName(): string {
+    return this.defaultProviderName;
+  }
 }

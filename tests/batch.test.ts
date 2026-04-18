@@ -169,4 +169,32 @@ describe("describeImagesBatch", () => {
     expect(aPeak).toBe(2);
     expect(bPeak).toBe(1);
   });
+
+  it("shares a semaphore for items using registry default and items naming default explicitly", async () => {
+    const registry = new ProviderRegistry("p");
+    let running = 0, peak = 0;
+    registry.register(
+      makeProvider("p", async () => {
+        running++;
+        peak = Math.max(peak, running);
+        await new Promise((r) => setTimeout(r, 20));
+        running--;
+        return { text: "ok", usage: undefined };
+      }),
+    );
+    await describeImagesBatch(
+      {
+        items: [
+          { image: DATA_URL, provider: "p" },
+          { image: DATA_URL },
+          { image: DATA_URL, provider: "p" },
+          { image: DATA_URL },
+        ],
+      },
+      registry,
+      DEFAULT_PREPROCESSING,
+      { concurrency: 2, perProviderConcurrency: { p: 1 } },
+    );
+    expect(peak).toBe(1);
+  });
 });

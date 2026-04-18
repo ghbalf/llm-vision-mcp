@@ -120,9 +120,10 @@ export async function describeImagesBatch(
 ): Promise<BatchResult> {
   const effectiveConcurrency = args.concurrency ?? defaults.concurrency;
   const semaphores = new Map<string, Semaphore>();
+  const defaultName = registry.getDefaultProviderName();
 
   const tasks = args.items.map((item, index) => {
-    const providerName = resolveProviderName(item.provider, args.provider, "_default_");
+    const providerName = resolveProviderName(item.provider, args.provider, defaultName);
     const sem = getSemaphoreFor(
       providerName,
       semaphores,
