@@ -8,17 +8,19 @@ import { GoogleProvider } from "./providers/google.js";
 import { OllamaProvider } from "./providers/ollama.js";
 import { OpenAICompatibleProvider } from "./providers/openai-compatible.js";
 import { GenericHttpProvider } from "./providers/generic-http.js";
+import { DEFAULT_RETRY } from "./types.js";
 import type { GenericHttpProviderConfig, ProviderConfig, VisionProvider } from "./types.js";
 
 const BUILTIN_PROVIDERS = new Set(["openai", "anthropic", "google", "ollama"]);
 
 function buildRegistry(config: ReturnType<typeof loadConfig>): ProviderRegistry {
-  const registry = new ProviderRegistry(config.defaultProvider);
+  const baseRetry = { ...DEFAULT_RETRY, ...(config.retry ?? {}) };
+  const registry = new ProviderRegistry(config.defaultProvider, baseRetry);
 
   for (const [name, providerConfig] of Object.entries(config.providers)) {
     try {
       const provider = createProvider(name, providerConfig);
-      if (provider) registry.register(provider);
+      if (provider) registry.register(provider, providerConfig.retry);
     } catch (err) {
       console.error(`Warning: Failed to initialize provider "${name}":`, err);
     }
