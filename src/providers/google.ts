@@ -42,6 +42,14 @@ export class GoogleProvider implements VisionProvider {
     ]);
 
     const text = result.response.text();
-    return { text, usage: undefined };
+    const u = (result.response as { usageMetadata?: { promptTokenCount: number; candidatesTokenCount: number; totalTokenCount: number } }).usageMetadata;
+    const usage = u
+      ? {
+          inputTokens: u.promptTokenCount,
+          outputTokens: u.candidatesTokenCount,
+          totalTokens: u.totalTokenCount,
+        }
+      : undefined;
+    return { text, usage };
   }
 }

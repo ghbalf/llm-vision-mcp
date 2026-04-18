@@ -4,7 +4,14 @@ import type { ImageInput } from "../../src/types.js";
 
 const { mockGenerateContent, mockGetGenerativeModel } = vi.hoisted(() => ({
   mockGenerateContent: vi.fn().mockResolvedValue({
-    response: { text: () => "A chart showing revenue growth" },
+    response: {
+      text: () => "A chart showing revenue growth",
+      usageMetadata: {
+        promptTokenCount: 300,
+        candidatesTokenCount: 42,
+        totalTokenCount: 342,
+      },
+    },
   }),
   mockGetGenerativeModel: vi.fn(() => ({ generateContent: vi.fn() })),
 }));
@@ -72,5 +79,28 @@ describe("GoogleProvider", () => {
 
     const lastCall = mockGetGenerativeModel.mock.calls.at(-1);
     expect(lastCall?.[1]).toBeUndefined();
+  });
+
+  it("maps usageMetadata to VisionResult.usage", async () => {
+    const input: ImageInput = {
+      data: Buffer.from("fake"),
+      mimeType: "image/png",
+      originalSource: "t.png",
+    };
+    const result = await provider.describeImage(input, {});
+    expect(result.usage).toEqual({ inputTokens: 300, outputTokens: 42, totalTokens: 342 });
+  });
+
+  it("returns usage: undefined when usageMetadata missing", async () => {
+    mockGenerateContent.mockResolvedValueOnce({
+      response: { text: () => "no usage" },
+    });
+    const input: ImageInput = {
+      data: Buffer.from("fake"),
+      mimeType: "image/png",
+      originalSource: "t.png",
+    };
+    const result = await provider.describeImage(input, {});
+    expect(result.usage).toBeUndefined();
   });
 });
