@@ -72,7 +72,7 @@ export function createServer(
   batchDefaults: BatchDefaults,
 ): McpServer {
   const server = new McpServer(
-    { name: "llm-vision-mcp", version: "1.0.0" },
+    { name: "llm-vision-mcp", version: "1.1.0" },
     { capabilities: { logging: {} } },
   );
 

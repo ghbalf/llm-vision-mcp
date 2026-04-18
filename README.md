@@ -114,6 +114,54 @@ Sends an image to a vision LLM and returns a text description.
 "What data does this chart show?" + image: "data:image/png;base64,..."
 ```
 
+### Usage reporting
+
+When the provider returns token counts, a second `text` content block is appended with `Usage: <in> in / <out> out / <total> total tokens`. Batch results (see `describe_images`) also include aggregated `totalUsage`.
+
+## Tool: `describe_images`
+
+Describes multiple images in a single batched call. Each item may override the batch-level `prompt`, `provider`, and `model`. Results come back in input order. Per-provider concurrency limits are honored.
+
+### Parameters
+
+| Parameter | Required | Description |
+|---|---|---|
+| `items` | Yes | Array of 1–100 items, each with its own `image` and optional `prompt`/`provider`/`model` |
+| `prompt` | No | Default prompt for items without their own |
+| `provider` | No | Default provider for items without their own |
+| `model` | No | Default model for items without their own |
+| `concurrency` | No | Override the per-provider concurrency cap |
+
+### Example call
+
+```json
+{
+  "items": [
+    { "image": "/tmp/a.png" },
+    { "image": "https://example.com/b.png", "prompt": "Extract text" }
+  ],
+  "prompt": "Describe this image in detail."
+}
+```
+
+### Sample result
+
+```json
+{
+  "results": [
+    { "index": 0, "text": "A cat sitting on a desk.", "usage": { "inputTokens": 812, "outputTokens": 17, "totalTokens": 829 } },
+    { "index": 1, "text": "Invoice header reading 'ACME Corp'." }
+  ],
+  "totalUsage": { "inputTokens": 812, "outputTokens": 17, "totalTokens": 829 }
+}
+```
+
+Failed items appear with an `error` field instead of `text`; the batch itself does not fail.
+
+### Retry behavior
+
+Transient errors — 429, 5xx, and network failures — are retried up to 3 times with exponential backoff. Configure via the top-level `retry` block (`maxAttempts`, `baseDelayMs`); per-provider `retry` overrides the global default.
+
 ## Configuration
 
 Configuration sources are loaded in this order (later overrides earlier):

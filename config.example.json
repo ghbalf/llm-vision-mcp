@@ -1,5 +1,6 @@
 {
   "defaultProvider": "openai",
+  "retry": { "maxAttempts": 3, "baseDelayMs": 500 },
   "providers": {
     "openai": {
       "apiKey": "${OPENAI_API_KEY}",
@@ -16,7 +17,9 @@
     "ollama": {
       "baseUrl": "http://localhost:11434",
       "model": "llava",
-      "timeout": 180000
+      "timeout": 180000,
+      "retry": { "maxAttempts": 1 },
+      "concurrency": 1
     },
     "deepseek": {
       "type": "openai-compatible",
