@@ -17,10 +17,28 @@ export interface DescribeOptions {
   model?: string;
 }
 
+export interface UsageInfo {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
+export interface VisionResult {
+  text: string;
+  usage?: UsageInfo;
+}
+
+export interface RetryConfig {
+  maxAttempts: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+  jitterFactor: number;
+}
+
 export interface VisionProvider {
   name: string;
   supportedFormats: ImageFormat[];
-  describeImage(input: ImageInput, options: DescribeOptions): Promise<string>;
+  describeImage(input: ImageInput, options: DescribeOptions): Promise<VisionResult>;
 }
 
 export interface PreprocessingOptions {
@@ -37,6 +55,8 @@ export interface ProviderConfig {
   timeout?: number;
   maxTokens?: number;
   defaultPrompt?: string;
+  retry?: Partial<RetryConfig>;
+  concurrency?: number;
 }
 
 export interface GenericHttpProviderConfig extends ProviderConfig {
@@ -46,12 +66,14 @@ export interface GenericHttpProviderConfig extends ProviderConfig {
   requestTemplate: unknown;
   imageFormat?: "base64" | "data-url";
   responsePath: string;
+  usagePath?: string;
 }
 
 export interface AppConfig {
   defaultProvider: string;
   providers: Record<string, ProviderConfig | GenericHttpProviderConfig>;
   preprocessing: PreprocessingOptions;
+  retry?: Partial<RetryConfig>;
 }
 
 export const DEFAULT_PREPROCESSING: PreprocessingOptions = {
@@ -65,3 +87,10 @@ export const DEFAULT_MAX_TOKENS = 1024;
 export const URL_FETCH_TIMEOUT_MS = 30_000;
 export const DEFAULT_PROVIDER_TIMEOUT_MS = 60_000;
 export const OLLAMA_DEFAULT_TIMEOUT_MS = 120_000;
+export const DEFAULT_RETRY: RetryConfig = {
+  maxAttempts: 3,
+  baseDelayMs: 500,
+  maxDelayMs: 10_000,
+  jitterFactor: 0.2,
+};
+export const DEFAULT_CONCURRENCY = 3;
