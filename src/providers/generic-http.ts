@@ -1,4 +1,4 @@
-import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, GenericHttpProviderConfig, VisionResult } from "../types.js";
+import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, GenericHttpProviderConfig, UsageInfo, VisionResult } from "../types.js";
 import { DEFAULT_PROMPT, DEFAULT_PROVIDER_TIMEOUT_MS } from "../types.js";
 
 interface TemplatePlaceholders {
@@ -98,7 +98,15 @@ export class GenericHttpProvider implements VisionProvider {
 
       const data = await response.json();
       const text = extractByPath(data, this.config.responsePath);
-      return { text, usage: undefined };
+      let usage: UsageInfo | undefined;
+      if (this.config.usagePath) {
+        const raw = extractByPath(data, this.config.usagePath);
+        const total = Number(raw);
+        if (Number.isFinite(total)) {
+          usage = { inputTokens: 0, outputTokens: 0, totalTokens: total };
+        }
+      }
+      return { text, usage };
     } finally {
       clearTimeout(timeout);
     }

@@ -132,3 +132,44 @@ describe("GenericHttpProvider", () => {
     expect(body.image).toMatch(/^data:image\/png;base64,/);
   });
 });
+
+describe("GenericHttpProvider usage", () => {
+  const config: GenericHttpProviderConfig = {
+    type: "generic-http",
+    url: "https://api.example.com/vision",
+    headers: { Authorization: "Bearer test" },
+    requestTemplate: { image: "{{image}}", prompt: "{{prompt}}" },
+    imageFormat: "base64",
+    responsePath: "result.text",
+  };
+
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  it("returns usage: undefined when no usagePath configured", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ result: { text: "ok" }, tokens: { total: 99 } }),
+    });
+    const p = new GenericHttpProvider("custom", config);
+    const result = await p.describeImage(
+      { data: Buffer.from("x"), mimeType: "image/png", originalSource: "t.png" },
+      {},
+    );
+    expect(result.usage).toBeUndefined();
+  });
+
+  it("extracts totalTokens via usagePath", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ result: { text: "ok" }, tokens: { total: 99 } }),
+    });
+    const p = new GenericHttpProvider("custom", { ...config, usagePath: "tokens.total" });
+    const result = await p.describeImage(
+      { data: Buffer.from("x"), mimeType: "image/png", originalSource: "t.png" },
+      {},
+    );
+    expect(result.usage).toEqual({ inputTokens: 0, outputTokens: 0, totalTokens: 99 });
+  });
+});
