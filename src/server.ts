@@ -2,6 +2,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ProviderRegistry } from "./providers/registry.js";
 import { resolveImage, preprocessImage } from "./preprocessing/image-preprocessor.js";
+import { describeImagesBatch } from "./batch.js";
+import type { BatchArgs, BatchDefaults } from "./batch.js";
 import type { PreprocessingOptions } from "./types.js";
 
 interface DescribeImageArgs {
@@ -45,9 +47,29 @@ export async function handleDescribeImage(
   }
 }
 
+export async function handleDescribeImages(
+  args: BatchArgs,
+  registry: ProviderRegistry,
+  preprocessingOptions: PreprocessingOptions,
+  defaults: BatchDefaults,
+): Promise<ToolResult> {
+  try {
+    const batch = await describeImagesBatch(args, registry, preprocessingOptions, defaults);
+    return {
+      content: [
+        { type: "text", text: JSON.stringify(batch, null, 2) },
+      ],
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { isError: true, content: [{ type: "text", text: `Error: ${message}` }] };
+  }
+}
+
 export function createServer(
   registry: ProviderRegistry,
   preprocessingOptions: PreprocessingOptions,
+  batchDefaults: BatchDefaults,
 ): McpServer {
   const server = new McpServer(
     { name: "llm-vision-mcp", version: "1.0.0" },
@@ -81,6 +103,8 @@ export function createServer(
               "",
               "When a user shares an image or mentions one, always call `describe_image` to understand its content",
               "before responding — do not guess or assume what the image contains.",
+              "",
+              "A companion tool `describe_images` accepts an array of items when you have multiple images to analyze at once.",
             ].join("\n"),
           },
         },
@@ -98,6 +122,29 @@ export function createServer(
       model: z.string().optional().describe("Override the provider's default model"),
     },
     async (args) => handleDescribeImage(args, registry, preprocessingOptions),
+  );
+
+  server.tool(
+    "describe_images",
+    "Describes multiple images in a single batched call. Each item may override prompt/provider/model.",
+    {
+      items: z
+        .array(
+          z.object({
+            image: z.string().describe("File path, URL, or base64-encoded image data"),
+            prompt: z.string().optional(),
+            provider: z.string().optional(),
+            model: z.string().optional(),
+          }),
+        )
+        .min(1)
+        .max(100),
+      prompt: z.string().optional().describe("Default prompt for all items without their own"),
+      provider: z.string().optional().describe("Default provider for all items without their own"),
+      model: z.string().optional().describe("Default model for all items without their own"),
+      concurrency: z.number().int().positive().optional().describe("Override concurrency cap"),
+    },
+    async (args) => handleDescribeImages(args as BatchArgs, registry, preprocessingOptions, batchDefaults),
   );
 
   return server;

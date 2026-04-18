@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { handleDescribeImage } from "../src/server.js";
+import { handleDescribeImage, handleDescribeImages } from "../src/server.js";
 import type { VisionProvider, ImageInput, DescribeOptions } from "../src/types.js";
 import { ProviderRegistry } from "../src/providers/registry.js";
 import { DEFAULT_PREPROCESSING } from "../src/types.js";
@@ -82,5 +82,26 @@ describe("handleDescribeImage usage content block", () => {
     registry.register(makeProviderWithUsage("openai", "hello"));
     const result = await handleDescribeImage({ image: DATA_URL }, registry, DEFAULT_PREPROCESSING);
     expect(result.content).toHaveLength(1);
+  });
+});
+
+describe("handleDescribeImages", () => {
+  const DATA_URL =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+
+  it("returns JSON summary in a single content block", async () => {
+    const registry = new ProviderRegistry("openai");
+    registry.register(makeFakeProvider("openai", "hello"));
+    const result = await handleDescribeImages(
+      { items: [{ image: DATA_URL }, { image: DATA_URL }] },
+      registry,
+      DEFAULT_PREPROCESSING,
+      { concurrency: 2 },
+    );
+    expect(result.content).toHaveLength(1);
+    expect(result.content[0].type).toBe("text");
+    const payload = JSON.parse(result.content[0].text);
+    expect(payload.summary).toEqual({ succeeded: 2, failed: 0 });
+    expect(payload.results).toHaveLength(2);
   });
 });

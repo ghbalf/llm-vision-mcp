@@ -8,7 +8,7 @@ import { GoogleProvider } from "./providers/google.js";
 import { OllamaProvider } from "./providers/ollama.js";
 import { OpenAICompatibleProvider } from "./providers/openai-compatible.js";
 import { GenericHttpProvider } from "./providers/generic-http.js";
-import { DEFAULT_RETRY } from "./types.js";
+import { DEFAULT_RETRY, DEFAULT_CONCURRENCY } from "./types.js";
 import type { GenericHttpProviderConfig, ProviderConfig, VisionProvider } from "./types.js";
 
 const BUILTIN_PROVIDERS = new Set(["openai", "anthropic", "google", "ollama"]);
@@ -69,7 +69,15 @@ async function main() {
   console.error(`llm-vision-mcp: ${providers.length} provider(s) active: ${providers.join(", ")}`);
   console.error(`llm-vision-mcp: default provider: ${config.defaultProvider}`);
 
-  const server = createServer(registry, config.preprocessing);
+  const perProviderConcurrency: Record<string, number> = {};
+  for (const [name, cfg] of Object.entries(config.providers)) {
+    if (typeof cfg.concurrency === "number") perProviderConcurrency[name] = cfg.concurrency;
+  }
+  const batchDefaults = {
+    concurrency: DEFAULT_CONCURRENCY,
+    perProviderConcurrency,
+  };
+  const server = createServer(registry, config.preprocessing, batchDefaults);
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
