@@ -30,7 +30,15 @@ export async function handleDescribeImage(
       prompt: args.prompt,
       model: args.model,
     });
-    return { content: [{ type: "text", text: result.text }] };
+    const content: Array<{ type: "text"; text: string }> = [{ type: "text", text: result.text }];
+    if (result.usage) {
+      const { inputTokens, outputTokens, totalTokens } = result.usage;
+      content.push({
+        type: "text",
+        text: `Usage: ${inputTokens} in / ${outputTokens} out / ${totalTokens} total tokens`,
+      });
+    }
+    return { content };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return { isError: true, content: [{ type: "text", text: `Error: ${message}` }] };

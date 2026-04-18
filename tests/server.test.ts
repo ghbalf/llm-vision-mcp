@@ -56,3 +56,31 @@ describe("handleDescribeImage", () => {
     expect(result.content[0]).toEqual({ type: "text", text: "Anthropic response" });
   });
 });
+
+function makeProviderWithUsage(name: string, text: string, usage?: { inputTokens: number; outputTokens: number; totalTokens: number }): VisionProvider {
+  return {
+    name,
+    supportedFormats: ["image/png", "image/jpeg"],
+    describeImage: vi.fn().mockResolvedValue({ text, usage }),
+  };
+}
+
+describe("handleDescribeImage usage content block", () => {
+  const DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+
+  it("appends a usage content block when usage present", async () => {
+    const registry = new ProviderRegistry("openai");
+    registry.register(makeProviderWithUsage("openai", "hello", { inputTokens: 10, outputTokens: 5, totalTokens: 15 }));
+    const result = await handleDescribeImage({ image: DATA_URL }, registry, DEFAULT_PREPROCESSING);
+    expect(result.content).toHaveLength(2);
+    expect(result.content[0]).toEqual({ type: "text", text: "hello" });
+    expect(result.content[1]).toEqual({ type: "text", text: "Usage: 10 in / 5 out / 15 total tokens" });
+  });
+
+  it("omits the usage block when usage is undefined", async () => {
+    const registry = new ProviderRegistry("openai");
+    registry.register(makeProviderWithUsage("openai", "hello"));
+    const result = await handleDescribeImage({ image: DATA_URL }, registry, DEFAULT_PREPROCESSING);
+    expect(result.content).toHaveLength(1);
+  });
+});
