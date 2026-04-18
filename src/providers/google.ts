@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, ProviderConfig } from "../types.js";
+import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, ProviderConfig, VisionResult } from "../types.js";
 import { DEFAULT_PROMPT, DEFAULT_MAX_TOKENS } from "../types.js";
 
 export class GoogleProvider implements VisionProvider {
@@ -20,7 +20,7 @@ export class GoogleProvider implements VisionProvider {
     this.timeout = config.timeout;
   }
 
-  async describeImage(input: ImageInput, options: DescribeOptions): Promise<string> {
+  async describeImage(input: ImageInput, options: DescribeOptions): Promise<VisionResult> {
     const model = this.ai.getGenerativeModel(
       {
         model: options.model ?? this.defaultModel,
@@ -41,6 +41,7 @@ export class GoogleProvider implements VisionProvider {
       },
     ]);
 
-    return result.response.text();
+    const text = result.response.text();
+    return { text, usage: undefined };
   }
 }

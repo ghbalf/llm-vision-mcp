@@ -46,7 +46,7 @@ describe("GoogleProvider", () => {
       originalSource: "test.png",
     };
     const result = await provider.describeImage(input, {});
-    expect(result).toBe("A chart showing revenue growth");
+    expect(result.text).toBe("A chart showing revenue growth");
   });
 
   it("passes configured timeout to the Google SDK via requestOptions", async () => {

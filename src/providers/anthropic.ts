@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, ProviderConfig } from "../types.js";
+import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, ProviderConfig, VisionResult } from "../types.js";
 import { DEFAULT_PROMPT, DEFAULT_MAX_TOKENS, DEFAULT_PROVIDER_TIMEOUT_MS } from "../types.js";
 
 type AnthropicMediaType = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
@@ -23,7 +23,7 @@ export class AnthropicProvider implements VisionProvider {
     this.defaultPrompt = config.defaultPrompt ?? DEFAULT_PROMPT;
   }
 
-  async describeImage(input: ImageInput, options: DescribeOptions): Promise<string> {
+  async describeImage(input: ImageInput, options: DescribeOptions): Promise<VisionResult> {
     const base64 = input.data.toString("base64");
 
     const response = await this.client.messages.create({
@@ -48,6 +48,7 @@ export class AnthropicProvider implements VisionProvider {
     });
 
     const textBlock = response.content.find((block) => block.type === "text");
-    return textBlock && "text" in textBlock ? textBlock.text : "";
+    const text = textBlock && "text" in textBlock ? textBlock.text : "";
+    return { text, usage: undefined };
   }
 }

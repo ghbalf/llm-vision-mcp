@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, ProviderConfig } from "../types.js";
+import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, ProviderConfig, VisionResult } from "../types.js";
 import { DEFAULT_PROMPT, DEFAULT_MAX_TOKENS, DEFAULT_PROVIDER_TIMEOUT_MS } from "../types.js";
 
 export class OpenAIProvider implements VisionProvider {
@@ -25,7 +25,7 @@ export class OpenAIProvider implements VisionProvider {
     if (config.name) this.name = config.name;
   }
 
-  async describeImage(input: ImageInput, options: DescribeOptions): Promise<string> {
+  async describeImage(input: ImageInput, options: DescribeOptions): Promise<VisionResult> {
     const base64 = input.data.toString("base64");
     const dataUrl = `data:${input.mimeType};base64,${base64}`;
 
@@ -43,6 +43,7 @@ export class OpenAIProvider implements VisionProvider {
       ],
     });
 
-    return response.choices[0]?.message?.content ?? "";
+    const text = response.choices[0]?.message?.content ?? "";
+    return { text, usage: undefined };
   }
 }

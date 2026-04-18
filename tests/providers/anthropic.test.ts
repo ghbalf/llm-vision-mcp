@@ -36,6 +36,6 @@ describe("AnthropicProvider", () => {
       originalSource: "test.png",
     };
     const result = await provider.describeImage(input, {});
-    expect(result).toBe("A landscape with mountains");
+    expect(result.text).toBe("A landscape with mountains");
   });
 });

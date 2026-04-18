@@ -42,7 +42,7 @@ describe("OpenAIProvider", () => {
       originalSource: "test.png",
     };
     const result = await provider.describeImage(input, {});
-    expect(result).toBe("A red square on white background");
+    expect(result.text).toBe("A red square on white background");
   });
 
   it("passes custom prompt to the model", async () => {

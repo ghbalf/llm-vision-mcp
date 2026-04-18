@@ -35,6 +35,6 @@ describe("OpenAICompatibleProvider", () => {
       originalSource: "test.png",
     };
     const result = await provider.describeImage(input, {});
-    expect(result).toBe("DeepSeek description");
+    expect(result.text).toBe("DeepSeek description");
   });
 });

@@ -1,4 +1,4 @@
-import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, ProviderConfig } from "../types.js";
+import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, ProviderConfig, VisionResult } from "../types.js";
 import { DEFAULT_PROMPT, DEFAULT_MAX_TOKENS, OLLAMA_DEFAULT_TIMEOUT_MS } from "../types.js";
 
 export class OllamaProvider implements VisionProvider {
@@ -19,7 +19,7 @@ export class OllamaProvider implements VisionProvider {
     this.defaultPrompt = config.defaultPrompt ?? DEFAULT_PROMPT;
   }
 
-  async describeImage(input: ImageInput, options: DescribeOptions): Promise<string> {
+  async describeImage(input: ImageInput, options: DescribeOptions): Promise<VisionResult> {
     const base64 = input.data.toString("base64");
 
     const controller = new AbortController();
@@ -49,7 +49,7 @@ export class OllamaProvider implements VisionProvider {
       }
 
       const data = (await response.json()) as { message: { content: string } };
-      return data.message.content;
+      return { text: data.message.content, usage: undefined };
     } finally {
       clearTimeout(timeout);
     }

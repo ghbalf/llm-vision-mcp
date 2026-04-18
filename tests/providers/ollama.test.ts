@@ -30,7 +30,7 @@ describe("OllamaProvider", () => {
       originalSource: "test.png",
     };
     const result = await provider.describeImage(input, {});
-    expect(result).toBe("A cute cat sitting on a table");
+    expect(result.text).toBe("A cute cat sitting on a table");
 
     expect(mockFetch).toHaveBeenCalledWith(
       "http://localhost:11434/api/chat",

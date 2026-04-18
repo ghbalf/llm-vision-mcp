@@ -94,7 +94,7 @@ describe("GenericHttpProvider", () => {
       originalSource: "test.png",
     };
     const result = await provider.describeImage(input, { prompt: "describe" });
-    expect(result).toBe("Custom description");
+    expect(result.text).toBe("Custom description");
   });
 
   it("throws on construction when url is missing", () => {

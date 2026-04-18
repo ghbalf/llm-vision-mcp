@@ -7,7 +7,7 @@ function makeFakeProvider(name: string): VisionProvider {
     name,
     supportedFormats: ["image/png", "image/jpeg"],
     async describeImage(_input: ImageInput, _options: DescribeOptions) {
-      return `described by ${name}`;
+      return { text: `described by ${name}` };
     },
   };
 }

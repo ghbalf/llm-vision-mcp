@@ -26,11 +26,11 @@ export async function handleDescribeImage(
     const provider = registry.getProvider(args.provider);
     const rawImage = await resolveImage(args.image);
     const image = await preprocessImage(rawImage, provider.supportedFormats, preprocessingOptions);
-    const description = await provider.describeImage(image, {
+    const result = await provider.describeImage(image, {
       prompt: args.prompt,
       model: args.model,
     });
-    return { content: [{ type: "text", text: description }] };
+    return { content: [{ type: "text", text: result.text }] };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return { isError: true, content: [{ type: "text", text: `Error: ${message}` }] };

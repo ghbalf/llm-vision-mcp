@@ -8,7 +8,7 @@ function makeFakeProvider(name: string, response: string): VisionProvider {
   return {
     name,
     supportedFormats: ["image/png", "image/jpeg"],
-    describeImage: vi.fn().mockResolvedValue(response),
+    describeImage: vi.fn().mockResolvedValue({ text: response }),
   };
 }
 

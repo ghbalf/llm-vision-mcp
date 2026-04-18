@@ -1,4 +1,4 @@
-import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, GenericHttpProviderConfig } from "../types.js";
+import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, GenericHttpProviderConfig, VisionResult } from "../types.js";
 import { DEFAULT_PROMPT, DEFAULT_PROVIDER_TIMEOUT_MS } from "../types.js";
 
 interface TemplatePlaceholders {
@@ -65,7 +65,7 @@ export class GenericHttpProvider implements VisionProvider {
     this.defaultPrompt = config.defaultPrompt ?? DEFAULT_PROMPT;
   }
 
-  async describeImage(input: ImageInput, options: DescribeOptions): Promise<string> {
+  async describeImage(input: ImageInput, options: DescribeOptions): Promise<VisionResult> {
     const base64 = input.data.toString("base64");
     const imageValue =
       this.config.imageFormat === "data-url"
@@ -97,7 +97,8 @@ export class GenericHttpProvider implements VisionProvider {
       }
 
       const data = await response.json();
-      return extractByPath(data, this.config.responsePath);
+      const text = extractByPath(data, this.config.responsePath);
+      return { text, usage: undefined };
     } finally {
       clearTimeout(timeout);
     }
