@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:client": "node scripts/test-client.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
