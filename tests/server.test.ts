@@ -104,4 +104,19 @@ describe("handleDescribeImages", () => {
     expect(payload.summary).toEqual({ succeeded: 2, failed: 0 });
     expect(payload.results).toHaveLength(2);
   });
+
+  it("includes totalUsage in JSON when providers report usage", async () => {
+    const registry = new ProviderRegistry("openai");
+    registry.register(
+      makeProviderWithUsage("openai", "ok", { inputTokens: 50, outputTokens: 10, totalTokens: 60 }),
+    );
+    const result = await handleDescribeImages(
+      { items: [{ image: DATA_URL }, { image: DATA_URL }] },
+      registry,
+      DEFAULT_PREPROCESSING,
+      { concurrency: 2 },
+    );
+    const payload = JSON.parse(result.content[0].text);
+    expect(payload.totalUsage).toEqual({ inputTokens: 100, outputTokens: 20, totalTokens: 120 });
+  });
 });
