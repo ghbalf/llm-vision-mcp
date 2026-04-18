@@ -49,6 +49,14 @@ export class AnthropicProvider implements VisionProvider {
 
     const textBlock = response.content.find((block) => block.type === "text");
     const text = textBlock && "text" in textBlock ? textBlock.text : "";
-    return { text, usage: undefined };
+    const u = response.usage;
+    const usage = u
+      ? {
+          inputTokens: u.input_tokens,
+          outputTokens: u.output_tokens,
+          totalTokens: u.input_tokens + u.output_tokens,
+        }
+      : undefined;
+    return { text, usage };
   }
 }

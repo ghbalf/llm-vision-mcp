@@ -1,21 +1,24 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AnthropicProvider } from "../../src/providers/anthropic.js";
 import type { ImageInput } from "../../src/types.js";
 
-vi.mock("@anthropic-ai/sdk", () => {
-  return {
-    default: class MockAnthropic {
-      messages = {
-        create: vi.fn().mockResolvedValue({
-          content: [{ type: "text", text: "A landscape with mountains" }],
-        }),
-      };
-      constructor(public opts: Record<string, unknown>) {}
-    },
-  };
-});
+const { mockCreate } = vi.hoisted(() => ({
+  mockCreate: vi.fn().mockResolvedValue({
+    content: [{ type: "text", text: "A friendly dog" }],
+    usage: { input_tokens: 200, output_tokens: 25 },
+  }),
+}));
+
+vi.mock("@anthropic-ai/sdk", () => ({
+  default: class MockAnthropic {
+    messages = { create: mockCreate };
+    constructor(public opts: Record<string, unknown>) {}
+  },
+}));
 
 describe("AnthropicProvider", () => {
+  beforeEach(() => mockCreate.mockClear());
+
   const provider = new AnthropicProvider({ apiKey: "sk-ant-test" });
 
   it("has correct name", () => {
@@ -36,6 +39,31 @@ describe("AnthropicProvider", () => {
       originalSource: "test.png",
     };
     const result = await provider.describeImage(input, {});
-    expect(result.text).toBe("A landscape with mountains");
+    expect(result.text).toBe("A friendly dog");
+  });
+
+  it("maps SDK usage to VisionResult.usage", async () => {
+    const provider = new AnthropicProvider({ apiKey: "sk-test" });
+    const input: ImageInput = {
+      data: Buffer.from("fake"),
+      mimeType: "image/png",
+      originalSource: "t.png",
+    };
+    const result = await provider.describeImage(input, {});
+    expect(result.usage).toEqual({ inputTokens: 200, outputTokens: 25, totalTokens: 225 });
+  });
+
+  it("returns usage: undefined when SDK response lacks usage", async () => {
+    mockCreate.mockResolvedValueOnce({
+      content: [{ type: "text", text: "no usage" }],
+    });
+    const provider = new AnthropicProvider({ apiKey: "sk-test" });
+    const input: ImageInput = {
+      data: Buffer.from("fake"),
+      mimeType: "image/png",
+      originalSource: "t.png",
+    };
+    const result = await provider.describeImage(input, {});
+    expect(result.usage).toBeUndefined();
   });
 });
