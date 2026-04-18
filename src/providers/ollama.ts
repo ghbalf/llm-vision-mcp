@@ -48,8 +48,20 @@ export class OllamaProvider implements VisionProvider {
         throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
       }
 
-      const data = (await response.json()) as { message: { content: string } };
-      return { text: data.message.content, usage: undefined };
+      const data = (await response.json()) as {
+        message: { content: string };
+        prompt_eval_count?: number;
+        eval_count?: number;
+      };
+      const hasUsage = typeof data.prompt_eval_count === "number" && typeof data.eval_count === "number";
+      const usage = hasUsage
+        ? {
+            inputTokens: data.prompt_eval_count as number,
+            outputTokens: data.eval_count as number,
+            totalTokens: (data.prompt_eval_count as number) + (data.eval_count as number),
+          }
+        : undefined;
+      return { text: data.message.content, usage };
     } finally {
       clearTimeout(timeout);
     }

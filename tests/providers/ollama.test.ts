@@ -38,6 +38,40 @@ describe("OllamaProvider", () => {
     );
   });
 
+  it("maps prompt_eval_count and eval_count to VisionResult.usage", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        message: { content: "described" },
+        prompt_eval_count: 50,
+        eval_count: 10,
+      }),
+    });
+    const provider = new OllamaProvider({});
+    const input: ImageInput = {
+      data: Buffer.from("fake"),
+      mimeType: "image/png",
+      originalSource: "t.png",
+    };
+    const result = await provider.describeImage(input, {});
+    expect(result.usage).toEqual({ inputTokens: 50, outputTokens: 10, totalTokens: 60 });
+  });
+
+  it("returns usage: undefined when counts missing", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ message: { content: "no counts" } }),
+    });
+    const provider = new OllamaProvider({});
+    const input: ImageInput = {
+      data: Buffer.from("fake"),
+      mimeType: "image/png",
+      originalSource: "t.png",
+    };
+    const result = await provider.describeImage(input, {});
+    expect(result.usage).toBeUndefined();
+  });
+
   it("throws on HTTP error", async () => {
     mockFetch.mockResolvedValue({
       ok: false,
