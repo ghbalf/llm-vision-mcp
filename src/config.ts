@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { config as loadDotenv } from "dotenv";
 import type { AppConfig, ProviderConfig, PreprocessingOptions } from "./types.js";
 import { DEFAULT_PREPROCESSING } from "./types.js";
+import { PRESETS } from "./presets.js";
 
 export function interpolateEnvVars(value: string): string {
   return value.replace(/\$\{([^}]+)\}/g, (_, key) => process.env[key] ?? "");
@@ -84,6 +85,26 @@ function loadConfigFile(path: string): Partial<AppConfig> {
   const raw = readFileSync(path, "utf-8");
   const parsed = JSON.parse(raw);
   return interpolateObject(parsed) as Partial<AppConfig>;
+}
+
+function applyPresetDefaults(config: AppConfig): void {
+  const name = config.defaultProvider;
+  const preset = PRESETS[name];
+  if (!preset) return;
+  const existing = config.providers[name];
+  // Respect an explicit non-OpenAI-compatible type set via config file.
+  if (existing?.type && existing.type !== "openai-compatible") return;
+  const apiKey = existing?.apiKey ?? process.env[preset.envKey];
+  if (!apiKey) return;
+  config.providers[name] = {
+    type: "openai-compatible",
+    apiKey,
+    baseUrl: existing?.baseUrl ?? process.env[preset.envBaseUrl] ?? preset.baseUrl,
+    model: existing?.model ?? process.env[preset.envModel] ?? preset.defaultModel,
+    ...(existing?.timeout !== undefined ? { timeout: existing.timeout } : {}),
+    ...(existing?.retry !== undefined ? { retry: existing.retry } : {}),
+    ...(existing?.concurrency !== undefined ? { concurrency: existing.concurrency } : {}),
+  };
 }
 
 export function loadConfig(argv: string[]): AppConfig {
@@ -187,6 +208,8 @@ export function loadConfig(argv: string[]): AppConfig {
       config.preprocessing = { ...config.preprocessing, ...fileConfig.preprocessing };
     }
   }
+
+  applyPresetDefaults(config);
 
   return config;
 }

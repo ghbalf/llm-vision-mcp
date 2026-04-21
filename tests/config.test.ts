@@ -129,4 +129,41 @@ describe("loadConfig", () => {
       expect(config.providers.openai?.apiKey).toBe("sk-generic-wins");
     });
   });
+
+  describe("preset resolution (happy path)", () => {
+    it("synthesizes an OpenAI-compatible provider entry from env vars when default is a preset name", () => {
+      process.env.VISION_DEFAULT_PROVIDER = "moonshot";
+      process.env.MOONSHOT_API_KEY = "sk-moonshot-test";
+      const config = loadConfig([]);
+      expect(config.providers.moonshot).toBeDefined();
+      expect(config.providers.moonshot?.type).toBe("openai-compatible");
+      expect(config.providers.moonshot?.apiKey).toBe("sk-moonshot-test");
+      expect(config.providers.moonshot?.baseUrl).toBe("https://api.moonshot.ai/v1/");
+      expect(config.providers.moonshot?.model).toBe("kimi-k2.5");
+    });
+
+    it("synthesizes a preset entry via CLI flags (--provider + --api-key)", () => {
+      const config = loadConfig(["--provider", "moonshot", "--api-key", "sk-cli-test"]);
+      expect(config.providers.moonshot?.apiKey).toBe("sk-cli-test");
+      expect(config.providers.moonshot?.baseUrl).toBe("https://api.moonshot.ai/v1/");
+      expect(config.providers.moonshot?.model).toBe("kimi-k2.5");
+      expect(config.providers.moonshot?.type).toBe("openai-compatible");
+    });
+
+    it("no-ops when the default provider is not a preset name", () => {
+      process.env.VISION_DEFAULT_PROVIDER = "openai";
+      process.env.OPENAI_API_KEY = "sk-openai";
+      const config = loadConfig([]);
+      // openai is a builtin, not a preset — the helper should not synthesize
+      // an openai-compatible entry here.
+      expect(config.providers.openai?.type).toBeUndefined();
+    });
+
+    it("no-ops when the preset is named but no API key is available anywhere", () => {
+      process.env.VISION_DEFAULT_PROVIDER = "moonshot";
+      delete process.env.MOONSHOT_API_KEY;
+      const config = loadConfig([]);
+      expect(config.providers.moonshot).toBeUndefined();
+    });
+  });
 });
