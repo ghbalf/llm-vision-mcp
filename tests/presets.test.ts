@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { PRESETS, getPreset, type Preset } from "../src/presets.js";
+import { PRESETS, getPreset } from "../src/presets.js";
 
 describe("PRESETS table", () => {
   it("includes the moonshot preset with the expected shape", () => {
