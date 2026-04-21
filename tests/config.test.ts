@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { loadConfig, interpolateEnvVars } from "../src/config.js";
 import { DEFAULT_PREPROCESSING } from "../src/types.js";
 
+import { writeFileSync, unlinkSync, mkdtempSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
 describe("loadConfig", () => {
   const originalEnv = process.env;
 
@@ -252,6 +256,85 @@ describe("loadConfig", () => {
     it("--api-key beats MOONSHOT_API_KEY", () => {
       const config = loadConfig(["--api-key", "sk-cli"]);
       expect(config.providers.moonshot?.apiKey).toBe("sk-cli");
+    });
+  });
+
+  describe("preset resolution (file entry interaction)", () => {
+    let configDir: string;
+    let configPath: string;
+
+    beforeEach(() => {
+      configDir = mkdtempSync(join(tmpdir(), "vision-config-"));
+      configPath = join(configDir, "vision-config.json");
+      process.env.VISION_DEFAULT_PROVIDER = "moonshot";
+      process.env.MOONSHOT_API_KEY = "sk-env-key";
+    });
+
+    afterEach(() => {
+      try {
+        unlinkSync(configPath);
+      } catch {
+        // file may not exist if a test didn't write it
+      }
+    });
+
+    it("partial file entry (apiKey only) gets preset gaps filled in for baseUrl and model", () => {
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          providers: {
+            moonshot: { apiKey: "sk-file-key" },
+          },
+        }),
+      );
+      const config = loadConfig(["--config", configPath]);
+      expect(config.providers.moonshot?.apiKey).toBe("sk-file-key");
+      expect(config.providers.moonshot?.baseUrl).toBe("https://api.moonshot.ai/v1/");
+      expect(config.providers.moonshot?.model).toBe("kimi-k2.5");
+      expect(config.providers.moonshot?.type).toBe("openai-compatible");
+    });
+
+    it("full file entry wins on all its explicit fields", () => {
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          providers: {
+            moonshot: {
+              type: "openai-compatible",
+              apiKey: "sk-file-key",
+              baseUrl: "https://custom.example.com/v1",
+              model: "custom-model",
+            },
+          },
+        }),
+      );
+      const config = loadConfig(["--config", configPath]);
+      expect(config.providers.moonshot?.apiKey).toBe("sk-file-key");
+      expect(config.providers.moonshot?.baseUrl).toBe("https://custom.example.com/v1");
+      expect(config.providers.moonshot?.model).toBe("custom-model");
+    });
+
+    it("file entry with type: generic-http under a preset name is respected (not clobbered)", () => {
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          providers: {
+            moonshot: {
+              type: "generic-http",
+              url: "https://custom.example.com/vision",
+              headers: { "X-Custom": "yes" },
+              requestTemplate: { image: "{{image}}", prompt: "{{prompt}}" },
+              responsePath: "result.text",
+            },
+          },
+        }),
+      );
+      const config = loadConfig(["--config", configPath]);
+      expect(config.providers.moonshot?.type).toBe("generic-http");
+      // The preset helper must not have overwritten the generic-http fields.
+      expect((config.providers.moonshot as { url?: string }).url).toBe(
+        "https://custom.example.com/vision",
+      );
     });
   });
 });
