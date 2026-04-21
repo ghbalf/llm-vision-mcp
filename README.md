@@ -202,10 +202,12 @@ VISION_TIMEOUT_MS=60000          # default provider timeout
 OLLAMA_TIMEOUT_MS=300000         # bump for slow local models
 VISION_CONFIG_PATH=./vision-config.json
 
-# Preset providers (see "Preset Providers" section for the full list)
-VISION_DEFAULT_PROVIDER=moonshot
-MOONSHOT_API_KEY=sk-...
-# Optional: MOONSHOT_MODEL=kimi-k2.6, MOONSHOT_BASE_URL=https://api.moonshot.cn/v1
+# Preset providers — pick ONE vendor and replace the VISION_DEFAULT_PROVIDER
+# value above; see "Preset Providers" section for the full list.
+# Example (Moonshot):
+#   VISION_DEFAULT_PROVIDER=moonshot
+#   MOONSHOT_API_KEY=sk-...
+#   # Optional: MOONSHOT_MODEL=kimi-k2.6, MOONSHOT_BASE_URL=https://api.moonshot.cn/v1/
 ```
 
 ### Preset Providers
@@ -223,6 +225,8 @@ For 8 major OpenAI-compatible vision vendors, llm-vision-mcp ships with built-in
 | `deepinfra` | `https://api.deepinfra.com/v1/openai/` | `meta-llama/Llama-3.2-11B-Vision-Instruct` | `DEEPINFRA_API_KEY` |
 | `xai` | `https://api.x.ai/v1/` | `grok-4.20-0309-non-reasoning` | `XAI_API_KEY` |
 
+*Model strings use each vendor's exact casing (NVIDIA ships `llama-3.2-11b-vision-instruct` lowercase while DeepInfra ships `Llama-3.2-11B-Vision-Instruct` mixed case). Copy them verbatim — do not normalize.*
+
 **Region notes:**
 - **zai** — default `baseUrl` is the international endpoint (`api.z.ai`). Users in mainland China should override: `ZAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4/` (and use their `bigmodel.cn`-issued key as `ZAI_API_KEY`).
 - **qwen** — default `baseUrl` is the Singapore international endpoint. Users in mainland China should override: `DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/`.
@@ -235,6 +239,8 @@ export MOONSHOT_API_KEY=sk-...
 llm-vision-mcp
 ```
 
+The same pattern works for all 8 presets — swap `moonshot` and `MOONSHOT_API_KEY` for any other row of the table above.
+
 **MCP host config example (Claude Desktop, Cursor, etc.):**
 
 ```json
@@ -242,7 +248,7 @@ llm-vision-mcp
   "mcpServers": {
     "vision": {
       "command": "node",
-      "args": ["/path/to/llm-vision-mcp/dist/index.js"],
+      "args": ["/absolute/path/to/llm-vision-mcp/dist/index.js"],
       "env": {
         "VISION_DEFAULT_PROVIDER": "moonshot",
         "MOONSHOT_API_KEY": "sk-..."
