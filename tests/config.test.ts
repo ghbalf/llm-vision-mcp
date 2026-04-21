@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { loadConfig, interpolateEnvVars } from "../src/config.js";
 import { DEFAULT_PREPROCESSING } from "../src/types.js";
 
-import { writeFileSync, unlinkSync, mkdtempSync } from "node:fs";
+import { writeFileSync, rmSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -186,9 +186,6 @@ describe("loadConfig", () => {
       // the synthesized baseUrl and model. For maxTokens/defaultPrompt which
       // don't have CLI flags, we write a temporary config file fixture.
 
-      const { writeFileSync, unlinkSync, mkdtempSync } = require("node:fs");
-      const { join } = require("node:path");
-      const { tmpdir } = require("node:os");
       const dir = mkdtempSync(join(tmpdir(), "vision-preset-"));
       const cfgPath = join(dir, "vision-config.json");
       writeFileSync(
@@ -215,7 +212,7 @@ describe("loadConfig", () => {
         expect(config.providers.moonshot?.retry).toEqual({ maxAttempts: 5 });
         expect(config.providers.moonshot?.concurrency).toBe(2);
       } finally {
-        unlinkSync(cfgPath);
+        rmSync(dir, { recursive: true, force: true });
       }
     });
   });
@@ -271,11 +268,7 @@ describe("loadConfig", () => {
     });
 
     afterEach(() => {
-      try {
-        unlinkSync(configPath);
-      } catch {
-        // file may not exist if a test didn't write it
-      }
+      rmSync(configDir, { recursive: true, force: true });
     });
 
     it("partial file entry (apiKey only) gets preset gaps filled in for baseUrl and model", () => {
@@ -309,6 +302,7 @@ describe("loadConfig", () => {
         }),
       );
       const config = loadConfig(["--config", configPath]);
+      expect(config.providers.moonshot?.type).toBe("openai-compatible");
       expect(config.providers.moonshot?.apiKey).toBe("sk-file-key");
       expect(config.providers.moonshot?.baseUrl).toBe("https://custom.example.com/v1");
       expect(config.providers.moonshot?.model).toBe("custom-model");
@@ -330,11 +324,15 @@ describe("loadConfig", () => {
         }),
       );
       const config = loadConfig(["--config", configPath]);
-      expect(config.providers.moonshot?.type).toBe("generic-http");
-      // The preset helper must not have overwritten the generic-http fields.
-      expect((config.providers.moonshot as { url?: string }).url).toBe(
-        "https://custom.example.com/vision",
-      );
+      // Helper must early-return on type !== "openai-compatible" and preserve
+      // every generic-http field, not just the type marker.
+      expect(config.providers.moonshot).toMatchObject({
+        type: "generic-http",
+        url: "https://custom.example.com/vision",
+        headers: { "X-Custom": "yes" },
+        requestTemplate: { image: "{{image}}", prompt: "{{prompt}}" },
+        responsePath: "result.text",
+      });
     });
   });
 });
