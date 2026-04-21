@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  GoogleGenerativeAIAbortError,
+  GoogleGenerativeAIFetchError,
+} from "@google/generative-ai";
 import { GoogleProvider } from "../../src/providers/google.js";
+import { isRetryable } from "../../src/retry.js";
 import type { ImageInput } from "../../src/types.js";
 
 const { mockGenerateContent, mockGetGenerativeModel } = vi.hoisted(() => ({
@@ -16,8 +21,12 @@ const { mockGenerateContent, mockGetGenerativeModel } = vi.hoisted(() => ({
   mockGetGenerativeModel: vi.fn(() => ({ generateContent: vi.fn() })),
 }));
 
-vi.mock("@google/generative-ai", () => {
+vi.mock("@google/generative-ai", async () => {
+  const actual = await vi.importActual<typeof import("@google/generative-ai")>(
+    "@google/generative-ai",
+  );
   return {
+    ...actual,
     GoogleGenerativeAI: class MockGoogleAI {
       constructor(public apiKey: string) {}
       getGenerativeModel(modelParams: unknown, requestOptions?: unknown) {
@@ -102,5 +111,63 @@ describe("GoogleProvider", () => {
     };
     const result = await provider.describeImage(input, {});
     expect(result.usage).toBeUndefined();
+  });
+
+  describe("retry adapter", () => {
+    const input: ImageInput = {
+      data: Buffer.from("fake"),
+      mimeType: "image/png",
+      originalSource: "t.png",
+    };
+
+    it("translates GoogleGenerativeAIAbortError to an AbortError the retry wrapper recognizes", async () => {
+      const abortErr = new GoogleGenerativeAIAbortError("timed out");
+      mockGenerateContent.mockRejectedValueOnce(abortErr);
+
+      let caught: unknown;
+      try {
+        await provider.describeImage(input, {});
+      } catch (e) {
+        caught = e;
+      }
+
+      expect(caught).toBeDefined();
+      expect((caught as Error).name).toBe("AbortError");
+      expect(isRetryable(caught)).toBe(true);
+      expect((caught as { cause?: unknown }).cause).toBe(abortErr);
+    });
+
+    it("passes GoogleGenerativeAIFetchError through unchanged (already has .status)", async () => {
+      const fetchErr = new GoogleGenerativeAIFetchError(
+        "rate limited",
+        429,
+        "Too Many Requests",
+      );
+      mockGenerateContent.mockRejectedValueOnce(fetchErr);
+
+      let caught: unknown;
+      try {
+        await provider.describeImage(input, {});
+      } catch (e) {
+        caught = e;
+      }
+
+      expect(caught).toBe(fetchErr);
+      expect(isRetryable(caught)).toBe(true);
+    });
+
+    it("does not translate non-Google errors", async () => {
+      const generic = new Error("boom");
+      mockGenerateContent.mockRejectedValueOnce(generic);
+
+      let caught: unknown;
+      try {
+        await provider.describeImage(input, {});
+      } catch (e) {
+        caught = e;
+      }
+
+      expect(caught).toBe(generic);
+    });
   });
 });

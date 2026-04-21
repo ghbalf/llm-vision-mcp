@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, GoogleGenerativeAIAbortError } from "@google/generative-ai";
 import type { VisionProvider, ImageInput, DescribeOptions, ImageFormat, ProviderConfig, VisionResult } from "../types.js";
 import { DEFAULT_PROMPT, DEFAULT_MAX_TOKENS } from "../types.js";
 
@@ -31,15 +31,17 @@ export class GoogleProvider implements VisionProvider {
 
     const base64 = input.data.toString("base64");
 
-    const result = await model.generateContent([
-      options.prompt ?? this.defaultPrompt,
-      {
-        inlineData: {
-          mimeType: input.mimeType,
-          data: base64,
+    const result = await this.invokeWithNormalizedErrors(() =>
+      model.generateContent([
+        options.prompt ?? this.defaultPrompt,
+        {
+          inlineData: {
+            mimeType: input.mimeType,
+            data: base64,
+          },
         },
-      },
-    ]);
+      ]),
+    );
 
     const text = result.response.text();
     const u = (result.response as { usageMetadata?: { promptTokenCount: number; candidatesTokenCount: number; totalTokenCount: number } }).usageMetadata;
@@ -51,5 +53,19 @@ export class GoogleProvider implements VisionProvider {
         }
       : undefined;
     return { text, usage };
+  }
+
+  private async invokeWithNormalizedErrors<T>(fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err instanceof GoogleGenerativeAIAbortError) {
+        throw Object.assign(new Error(err.message), {
+          name: "AbortError",
+          cause: err,
+        });
+      }
+      throw err;
+    }
   }
 }
