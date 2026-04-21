@@ -97,4 +97,27 @@ describe("loadConfig", () => {
       expect(config.providers.openai?.timeout).toBeUndefined();
     });
   });
+
+  describe("generic CLI flags", () => {
+    it("--api-key sets apiKey on the default provider", () => {
+      process.env.VISION_DEFAULT_PROVIDER = "openai";
+      const config = loadConfig(["--provider", "openai", "--api-key", "sk-test"]);
+      expect(config.providers.openai?.apiKey).toBe("sk-test");
+    });
+
+    it("--base-url sets baseUrl on the default provider", () => {
+      process.env.OPENAI_API_KEY = "sk-env";
+      const config = loadConfig(["--base-url", "https://gateway.example.com/v1"]);
+      expect(config.providers.openai?.baseUrl).toBe("https://gateway.example.com/v1");
+    });
+
+    it("--api-key applies after --provider is resolved", () => {
+      process.env.VISION_DEFAULT_PROVIDER = "anthropic";
+      const config = loadConfig(["--provider", "openai", "--api-key", "sk-openai"]);
+      expect(config.defaultProvider).toBe("openai");
+      expect(config.providers.openai?.apiKey).toBe("sk-openai");
+      // Did not leak onto anthropic
+      expect(config.providers.anthropic?.apiKey).toBeUndefined();
+    });
+  });
 });

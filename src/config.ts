@@ -33,6 +33,8 @@ interface CliArgs {
   config?: string;
   timeout?: number;
   ollamaTimeout?: number;
+  apiKey?: string;
+  baseUrl?: string;
 }
 
 function parsePositiveMs(value: string | undefined): number | undefined {
@@ -56,6 +58,8 @@ function parseCli(argv: string[]): CliArgs {
       config: { type: "string" },
       timeout: { type: "string" },
       "ollama-timeout": { type: "string" },
+      "api-key": { type: "string" },
+      "base-url": { type: "string" },
     },
     strict: false,
   });
@@ -70,6 +74,8 @@ function parseCli(argv: string[]): CliArgs {
     config: values.config as string | undefined,
     timeout: parsePositiveMs(values.timeout as string | undefined),
     ollamaTimeout: parsePositiveMs(values["ollama-timeout"] as string | undefined),
+    apiKey: values["api-key"] as string | undefined,
+    baseUrl: values["base-url"] as string | undefined,
   };
 }
 
@@ -146,6 +152,20 @@ export function loadConfig(argv: string[]): AppConfig {
   if (cli.model) {
     const defaultProv = config.defaultProvider;
     config.providers[defaultProv] = { ...config.providers[defaultProv], model: cli.model };
+  }
+  if (cli.apiKey) {
+    const defaultProv = config.defaultProvider;
+    config.providers[defaultProv] = {
+      ...config.providers[defaultProv],
+      apiKey: cli.apiKey,
+    };
+  }
+  if (cli.baseUrl) {
+    const defaultProv = config.defaultProvider;
+    config.providers[defaultProv] = {
+      ...config.providers[defaultProv],
+      baseUrl: cli.baseUrl,
+    };
   }
   if (cli.timeout !== undefined) {
     const defaultProv = config.defaultProvider;
