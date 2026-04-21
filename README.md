@@ -184,6 +184,8 @@ Configuration sources are loaded in this order (later overrides earlier):
 --model <model>                Default model for the default provider
 --timeout <ms>                 Request timeout for the default provider
 --ollama-timeout <ms>          Request timeout for Ollama (default: 120000)
+--api-key <key>                API key for the default provider (generic)
+--base-url <url>               Base URL for the default provider (generic)
 --config <path>                Path to config file
 ```
 
@@ -199,13 +201,242 @@ OLLAMA_MODEL=llava
 VISION_TIMEOUT_MS=60000          # default provider timeout
 OLLAMA_TIMEOUT_MS=300000         # bump for slow local models
 VISION_CONFIG_PATH=./vision-config.json
+
+# Preset providers (see "Preset Providers" section for the full list)
+VISION_DEFAULT_PROVIDER=moonshot
+MOONSHOT_API_KEY=sk-...
+# Optional: MOONSHOT_MODEL=kimi-k2.6, MOONSHOT_BASE_URL=https://api.moonshot.cn/v1
 ```
+
+### Preset Providers
+
+For 8 major OpenAI-compatible vision vendors, llm-vision-mcp ships with built-in preset defaults. Set `VISION_DEFAULT_PROVIDER=<name>` plus the vendor's standard API key env var — nothing else required. Optionally override the default model and base URL with `<VENDOR>_MODEL` / `<VENDOR>_BASE_URL`.
+
+| Preset name | Base URL | Default model | API key env var |
+|-------------|----------|---------------|-----------------|
+| `moonshot` | `https://api.moonshot.ai/v1/` | `kimi-k2.5` | `MOONSHOT_API_KEY` |
+| `zai` | `https://api.z.ai/api/paas/v4/` | `glm-4.5v` | `ZAI_API_KEY` |
+| `qwen` | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1/` | `qwen3-vl-plus` | `DASHSCOPE_API_KEY` |
+| `nvidia` | `https://integrate.api.nvidia.com/v1/` | `meta/llama-3.2-11b-vision-instruct` | `NVIDIA_API_KEY` |
+| `groq` | `https://api.groq.com/openai/v1/` | `meta-llama/llama-4-scout-17b-16e-instruct` | `GROQ_API_KEY` |
+| `together` | `https://api.together.xyz/v1/` | `meta-llama/Llama-Vision-Free` | `TOGETHER_API_KEY` |
+| `deepinfra` | `https://api.deepinfra.com/v1/openai/` | `meta-llama/Llama-3.2-11B-Vision-Instruct` | `DEEPINFRA_API_KEY` |
+| `xai` | `https://api.x.ai/v1/` | `grok-4.20-0309-non-reasoning` | `XAI_API_KEY` |
+
+**Region notes:**
+- **zai** — default `baseUrl` is the international endpoint (`api.z.ai`). Users in mainland China should override: `ZAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4/` (and use their `bigmodel.cn`-issued key as `ZAI_API_KEY`).
+- **qwen** — default `baseUrl` is the Singapore international endpoint. Users in mainland China should override: `DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/`.
+
+**Quickstart with Moonshot:**
+
+```bash
+export VISION_DEFAULT_PROVIDER=moonshot
+export MOONSHOT_API_KEY=sk-...
+llm-vision-mcp
+```
+
+**MCP host config example (Claude Desktop, Cursor, etc.):**
+
+```json
+{
+  "mcpServers": {
+    "vision": {
+      "command": "node",
+      "args": ["/path/to/llm-vision-mcp/dist/index.js"],
+      "env": {
+        "VISION_DEFAULT_PROVIDER": "moonshot",
+        "MOONSHOT_API_KEY": "sk-..."
+      }
+    }
+  }
+}
+```
+
+Need multiple presets active at once, or pinned retry/concurrency settings per preset? See the [Provider Cookbook](#provider-cookbook) below for copy-paste config-file snippets.
 
 ### Config File
 
 See [`config.example.json`](config.example.json) for a full example with all providers.
 
 The config file supports `${ENV_VAR}` interpolation — API keys can reference environment variables so they never appear in the file.
+
+### Provider Cookbook
+
+Copy-paste JSON snippets for each preset vendor. Drop into your `vision-config.json` to pin settings, combine multiple providers, or override preset defaults. Keys stay in env vars via `${ENV_VAR}` interpolation.
+
+#### Moonshot (Kimi)
+
+```json
+{
+  "defaultProvider": "moonshot",
+  "providers": {
+    "moonshot": {
+      "type": "openai-compatible",
+      "baseUrl": "https://api.moonshot.ai/v1/",
+      "apiKey": "${MOONSHOT_API_KEY}",
+      "model": "kimi-k2.5"
+    }
+  }
+}
+```
+
+#### Z.ai (Zhipu GLM) — international
+
+```json
+{
+  "defaultProvider": "zai",
+  "providers": {
+    "zai": {
+      "type": "openai-compatible",
+      "baseUrl": "https://api.z.ai/api/paas/v4/",
+      "apiKey": "${ZAI_API_KEY}",
+      "model": "glm-4.5v"
+    }
+  }
+}
+```
+
+#### Z.ai (Zhipu GLM) — China region
+
+Same vendor, different endpoint and key:
+
+```json
+{
+  "defaultProvider": "zai",
+  "providers": {
+    "zai": {
+      "type": "openai-compatible",
+      "baseUrl": "https://open.bigmodel.cn/api/paas/v4/",
+      "apiKey": "${ZHIPUAI_API_KEY}",
+      "model": "glm-4.5v"
+    }
+  }
+}
+```
+
+#### Qwen (Alibaba DashScope) — international
+
+```json
+{
+  "defaultProvider": "qwen",
+  "providers": {
+    "qwen": {
+      "type": "openai-compatible",
+      "baseUrl": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/",
+      "apiKey": "${DASHSCOPE_API_KEY}",
+      "model": "qwen3-vl-plus"
+    }
+  }
+}
+```
+
+#### NVIDIA NIM
+
+```json
+{
+  "defaultProvider": "nvidia",
+  "providers": {
+    "nvidia": {
+      "type": "openai-compatible",
+      "baseUrl": "https://integrate.api.nvidia.com/v1/",
+      "apiKey": "${NVIDIA_API_KEY}",
+      "model": "meta/llama-3.2-11b-vision-instruct"
+    }
+  }
+}
+```
+
+#### Groq
+
+```json
+{
+  "defaultProvider": "groq",
+  "providers": {
+    "groq": {
+      "type": "openai-compatible",
+      "baseUrl": "https://api.groq.com/openai/v1/",
+      "apiKey": "${GROQ_API_KEY}",
+      "model": "meta-llama/llama-4-scout-17b-16e-instruct"
+    }
+  }
+}
+```
+
+#### Together AI
+
+```json
+{
+  "defaultProvider": "together",
+  "providers": {
+    "together": {
+      "type": "openai-compatible",
+      "baseUrl": "https://api.together.xyz/v1/",
+      "apiKey": "${TOGETHER_API_KEY}",
+      "model": "meta-llama/Llama-Vision-Free"
+    }
+  }
+}
+```
+
+#### DeepInfra
+
+```json
+{
+  "defaultProvider": "deepinfra",
+  "providers": {
+    "deepinfra": {
+      "type": "openai-compatible",
+      "baseUrl": "https://api.deepinfra.com/v1/openai/",
+      "apiKey": "${DEEPINFRA_API_KEY}",
+      "model": "meta-llama/Llama-3.2-11B-Vision-Instruct"
+    }
+  }
+}
+```
+
+#### xAI (Grok)
+
+```json
+{
+  "defaultProvider": "xai",
+  "providers": {
+    "xai": {
+      "type": "openai-compatible",
+      "baseUrl": "https://api.x.ai/v1/",
+      "apiKey": "${XAI_API_KEY}",
+      "model": "grok-4.20-0309-non-reasoning"
+    }
+  }
+}
+```
+
+#### Multiple providers simultaneously
+
+Register several providers at once, then call any of them per request via the MCP tool's `provider` parameter:
+
+```json
+{
+  "defaultProvider": "openai",
+  "providers": {
+    "openai": {
+      "apiKey": "${OPENAI_API_KEY}",
+      "model": "gpt-4o"
+    },
+    "moonshot": {
+      "type": "openai-compatible",
+      "baseUrl": "https://api.moonshot.ai/v1/",
+      "apiKey": "${MOONSHOT_API_KEY}",
+      "model": "kimi-k2.5"
+    },
+    "zai": {
+      "type": "openai-compatible",
+      "baseUrl": "https://api.z.ai/api/paas/v4/",
+      "apiKey": "${ZAI_API_KEY}",
+      "model": "glm-4.5v"
+    }
+  }
+}
+```
 
 ### Custom Providers
 
