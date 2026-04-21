@@ -8,12 +8,30 @@ import { GoogleProvider } from "./providers/google.js";
 import { OllamaProvider } from "./providers/ollama.js";
 import { OpenAICompatibleProvider } from "./providers/openai-compatible.js";
 import { GenericHttpProvider } from "./providers/generic-http.js";
+import { PRESETS } from "./presets.js";
 import { DEFAULT_RETRY, DEFAULT_CONCURRENCY } from "./types.js";
 import type { GenericHttpProviderConfig, ProviderConfig, VisionProvider } from "./types.js";
 
 const BUILTIN_PROVIDERS = new Set(["openai", "anthropic", "google", "ollama"]);
 
-function buildRegistry(config: ReturnType<typeof loadConfig>): ProviderRegistry {
+const BUILTINS = ["openai", "anthropic", "google", "ollama"];
+
+export function validateDefaultProvider(
+  defaultProvider: string,
+  registered: string[],
+): void {
+  if (registered.includes(defaultProvider)) return;
+  const presetNames = Object.keys(PRESETS).join(", ");
+  const builtinNames = BUILTINS.join(", ");
+  throw new Error(
+    `Unknown provider "${defaultProvider}".\n` +
+      `  Known presets: ${presetNames}\n` +
+      `  Known builtins: ${builtinNames}\n` +
+      `  Or provide a vision-config.json entry for "${defaultProvider}".`,
+  );
+}
+
+export function buildRegistry(config: ReturnType<typeof loadConfig>): ProviderRegistry {
   const baseRetry = { ...DEFAULT_RETRY, ...(config.retry ?? {}) };
   const registry = new ProviderRegistry(config.defaultProvider, baseRetry);
 
@@ -63,6 +81,13 @@ async function main() {
   const providers = registry.listProviders();
   if (providers.length === 0) {
     console.error("Error: No providers configured. Set at least one API key or configure a provider.");
+    process.exit(1);
+  }
+
+  try {
+    validateDefaultProvider(config.defaultProvider, providers);
+  } catch (err) {
+    console.error(`Error: ${(err as Error).message}`);
     process.exit(1);
   }
 
