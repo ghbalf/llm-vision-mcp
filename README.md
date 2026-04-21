@@ -492,6 +492,38 @@ Template placeholders: `{{image}}`, `{{prompt}}`, `{{mimeType}}`
 
 `responsePath`: Dot-notation path to extract the text from the JSON response (e.g., `choices.0.message.content`)
 
+`usagePath` (optional): Dot-notation path to a numeric token total in the response. Reported as `totalTokens`.
+
+> **Note:** `headers` values are sent to the server literally — there is no `${ENV_VAR}` expansion. Paste the bearer token directly, or launch the server from a wrapper that substitutes it.
+
+##### Example: MiniMax vision (`MiniMax-M2.7`)
+
+MiniMax's OpenAI-compatible `/v1/chat/completions` endpoint silently drops `image_url` content blocks, so vision requests must go to the Anthropic-compatible `/anthropic/v1/messages` endpoint with the image embedded as a plain-text data URL inside the `content` string (not as a content-part array).
+
+```json
+{
+  "providers": {
+    "minimax": {
+      "type": "generic-http",
+      "url": "https://api.minimax.io/anthropic/v1/messages",
+      "headers": { "Authorization": "Bearer YOUR_MINIMAX_API_KEY" },
+      "requestTemplate": {
+        "model": "MiniMax-M2.7",
+        "max_tokens": 1024,
+        "messages": [
+          { "role": "user", "content": "{{image}}\n{{prompt}}" }
+        ]
+      },
+      "imageFormat": "data-url",
+      "responsePath": "content.0.text"
+    }
+  },
+  "defaultProvider": "minimax"
+}
+```
+
+Verified 2026-04 against MiniMax's international host (`api.minimax.io`). Chinese users swap the host for `api.minimaxi.com`. If MiniMax later ships a native `image_url`-style content part or adds a preset-class adapter in llm-vision-mcp, this generic-http config can be replaced by the simpler preset form.
+
 ## Image Preprocessing
 
 Images are automatically preprocessed before being sent to providers:
