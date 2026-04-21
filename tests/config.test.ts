@@ -215,4 +215,40 @@ describe("loadConfig", () => {
       }
     });
   });
+
+  describe("preset resolution (env overrides)", () => {
+    beforeEach(() => {
+      process.env.VISION_DEFAULT_PROVIDER = "moonshot";
+      process.env.MOONSHOT_API_KEY = "sk-test";
+    });
+
+    it("MOONSHOT_MODEL overrides the preset's default model", () => {
+      process.env.MOONSHOT_MODEL = "kimi-k2.6";
+      const config = loadConfig([]);
+      expect(config.providers.moonshot?.model).toBe("kimi-k2.6");
+    });
+
+    it("MOONSHOT_BASE_URL overrides the preset's default base URL", () => {
+      process.env.MOONSHOT_BASE_URL = "https://api.moonshot.cn/v1";
+      const config = loadConfig([]);
+      expect(config.providers.moonshot?.baseUrl).toBe("https://api.moonshot.cn/v1");
+    });
+
+    it("--model beats MOONSHOT_MODEL", () => {
+      process.env.MOONSHOT_MODEL = "kimi-k2.6";
+      const config = loadConfig(["--model", "kimi-k2.5"]);
+      expect(config.providers.moonshot?.model).toBe("kimi-k2.5");
+    });
+
+    it("--base-url beats MOONSHOT_BASE_URL", () => {
+      process.env.MOONSHOT_BASE_URL = "https://api.moonshot.cn/v1";
+      const config = loadConfig(["--base-url", "https://gateway.example.com/v1"]);
+      expect(config.providers.moonshot?.baseUrl).toBe("https://gateway.example.com/v1");
+    });
+
+    it("--api-key beats MOONSHOT_API_KEY", () => {
+      const config = loadConfig(["--api-key", "sk-cli"]);
+      expect(config.providers.moonshot?.apiKey).toBe("sk-cli");
+    });
+  });
 });
