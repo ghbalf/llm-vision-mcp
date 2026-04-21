@@ -27,6 +27,12 @@
       "apiKey": "${DEEPSEEK_API_KEY}",
       "model": "deepseek-vl2"
     },
+    "moonshot": {
+      "type": "openai-compatible",
+      "baseUrl": "https://api.moonshot.ai/v1/",
+      "apiKey": "${MOONSHOT_API_KEY}",
+      "model": "kimi-k2.5"
+    },
     "custom": {
       "type": "generic-http",
       "url": "https://my-api.example.com/vision",
