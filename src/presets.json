@@ -1,6 +1,6 @@
 {
   "moonshot": {
-    "baseUrl": "https://api.moonshot.ai/v1",
+    "baseUrl": "https://api.moonshot.ai/v1/",
     "defaultModel": "kimi-k2.5",
     "envKey": "MOONSHOT_API_KEY",
     "envModel": "MOONSHOT_MODEL",
@@ -50,7 +50,7 @@
   },
   "xai": {
     "baseUrl": "https://api.x.ai/v1/",
-    "defaultModel": "grok-4-latest",
+    "defaultModel": "grok-4.20-0309-non-reasoning",
     "envKey": "XAI_API_KEY",
     "envModel": "XAI_MODEL",
     "envBaseUrl": "XAI_BASE_URL"

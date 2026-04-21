@@ -5,7 +5,7 @@ describe("PRESETS table", () => {
   it("includes the moonshot preset with the expected shape", () => {
     const preset = PRESETS.moonshot;
     expect(preset).toBeDefined();
-    expect(preset.baseUrl).toBe("https://api.moonshot.ai/v1");
+    expect(preset.baseUrl).toBe("https://api.moonshot.ai/v1/");
     expect(preset.defaultModel).toBe("kimi-k2.5");
     expect(preset.envKey).toBe("MOONSHOT_API_KEY");
     expect(preset.envModel).toBe("MOONSHOT_MODEL");
@@ -65,6 +65,7 @@ describe("PRESETS structural invariants", () => {
     // envKey = "MOONSHOT_API_KEY" -> prefix = "MOONSHOT"
     // Expect envModel = "MOONSHOT_MODEL", envBaseUrl = "MOONSHOT_BASE_URL"
     for (const [name, preset] of Object.entries(PRESETS)) {
+      expect(preset.envKey, `${name}.envKey`).toMatch(/_API_KEY$/);
       const prefix = preset.envKey.replace(/_API_KEY$/, "");
       expect(preset.envModel, `${name}.envModel`).toBe(`${prefix}_MODEL`);
       expect(preset.envBaseUrl, `${name}.envBaseUrl`).toBe(`${prefix}_BASE_URL`);
@@ -74,5 +75,7 @@ describe("PRESETS structural invariants", () => {
   it("uses vendor-published SDK conventions for non-uniform envKey names", () => {
     // Alibaba/Qwen uses DASHSCOPE_* per their SDK convention.
     expect(PRESETS.qwen.envKey).toBe("DASHSCOPE_API_KEY");
+    // Zhipu AI rebranded to Z.ai — use the new vendor name, not the old ZHIPUAI_*.
+    expect(PRESETS.zai.envKey).toBe("ZAI_API_KEY");
   });
 });
