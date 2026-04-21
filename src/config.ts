@@ -96,14 +96,16 @@ function applyPresetDefaults(config: AppConfig): void {
   if (existing?.type && existing.type !== "openai-compatible") return;
   const apiKey = existing?.apiKey ?? process.env[preset.envKey];
   if (!apiKey) return;
+  // Precedence per spec §3: existing (file/CLI/env-already-merged) fields win;
+  // preset + vendor env vars fill gaps. `...existing` at the top carries every
+  // ProviderConfig field through (maxTokens, defaultPrompt, retry, concurrency,
+  // timeout, and future additions) so the helper never silently drops data.
   config.providers[name] = {
+    ...existing,
     type: "openai-compatible",
     apiKey,
     baseUrl: existing?.baseUrl ?? process.env[preset.envBaseUrl] ?? preset.baseUrl,
     model: existing?.model ?? process.env[preset.envModel] ?? preset.defaultModel,
-    ...(existing?.timeout !== undefined ? { timeout: existing.timeout } : {}),
-    ...(existing?.retry !== undefined ? { retry: existing.retry } : {}),
-    ...(existing?.concurrency !== undefined ? { concurrency: existing.concurrency } : {}),
   };
 }
 

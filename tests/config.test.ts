@@ -165,5 +165,54 @@ describe("loadConfig", () => {
       const config = loadConfig([]);
       expect(config.providers.moonshot).toBeUndefined();
     });
+
+    it("preserves maxTokens, defaultPrompt, and other existing ProviderConfig fields when synthesizing", () => {
+      // Scenario: user has a partial config file entry and MOONSHOT_API_KEY in env.
+      // The helper fills baseUrl/model from the preset but must NOT drop fields
+      // the file set (maxTokens, defaultPrompt, retry, concurrency, timeout).
+      process.env.VISION_DEFAULT_PROVIDER = "moonshot";
+      process.env.MOONSHOT_API_KEY = "sk-test";
+
+      // Stage a pre-existing partial entry by way of the config file path. The
+      // most direct way without a fixture is to invoke loadConfig via CLI flags
+      // that land into providers.moonshot, then rely on the helper's spread.
+      // Here we simulate by setting fields that CLI plumbing would set.
+      // Since the CLI path only writes apiKey/baseUrl/model/timeout, we use
+      // --timeout to seed a survival field, and assert timeout survives alongside
+      // the synthesized baseUrl and model. For maxTokens/defaultPrompt which
+      // don't have CLI flags, we write a temporary config file fixture.
+
+      const { writeFileSync, unlinkSync, mkdtempSync } = require("node:fs");
+      const { join } = require("node:path");
+      const { tmpdir } = require("node:os");
+      const dir = mkdtempSync(join(tmpdir(), "vision-preset-"));
+      const cfgPath = join(dir, "vision-config.json");
+      writeFileSync(
+        cfgPath,
+        JSON.stringify({
+          providers: {
+            moonshot: {
+              maxTokens: 2048,
+              defaultPrompt: "Describe terse.",
+              retry: { maxAttempts: 5 },
+              concurrency: 2,
+            },
+          },
+        }),
+      );
+
+      try {
+        const config = loadConfig(["--config", cfgPath]);
+        expect(config.providers.moonshot?.apiKey).toBe("sk-test");
+        expect(config.providers.moonshot?.baseUrl).toBe("https://api.moonshot.ai/v1/");
+        expect(config.providers.moonshot?.model).toBe("kimi-k2.5");
+        expect(config.providers.moonshot?.maxTokens).toBe(2048);
+        expect(config.providers.moonshot?.defaultPrompt).toBe("Describe terse.");
+        expect(config.providers.moonshot?.retry).toEqual({ maxAttempts: 5 });
+        expect(config.providers.moonshot?.concurrency).toBe(2);
+      } finally {
+        unlinkSync(cfgPath);
+      }
+    });
   });
 });
