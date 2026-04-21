@@ -5,5 +5,54 @@
     "envKey": "MOONSHOT_API_KEY",
     "envModel": "MOONSHOT_MODEL",
     "envBaseUrl": "MOONSHOT_BASE_URL"
+  },
+  "zai": {
+    "baseUrl": "https://api.z.ai/api/paas/v4/",
+    "defaultModel": "glm-4.5v",
+    "envKey": "ZAI_API_KEY",
+    "envModel": "ZAI_MODEL",
+    "envBaseUrl": "ZAI_BASE_URL"
+  },
+  "qwen": {
+    "baseUrl": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/",
+    "defaultModel": "qwen3-vl-plus",
+    "envKey": "DASHSCOPE_API_KEY",
+    "envModel": "DASHSCOPE_MODEL",
+    "envBaseUrl": "DASHSCOPE_BASE_URL"
+  },
+  "nvidia": {
+    "baseUrl": "https://integrate.api.nvidia.com/v1/",
+    "defaultModel": "meta/llama-3.2-11b-vision-instruct",
+    "envKey": "NVIDIA_API_KEY",
+    "envModel": "NVIDIA_MODEL",
+    "envBaseUrl": "NVIDIA_BASE_URL"
+  },
+  "groq": {
+    "baseUrl": "https://api.groq.com/openai/v1/",
+    "defaultModel": "meta-llama/llama-4-scout-17b-16e-instruct",
+    "envKey": "GROQ_API_KEY",
+    "envModel": "GROQ_MODEL",
+    "envBaseUrl": "GROQ_BASE_URL"
+  },
+  "together": {
+    "baseUrl": "https://api.together.xyz/v1/",
+    "defaultModel": "meta-llama/Llama-Vision-Free",
+    "envKey": "TOGETHER_API_KEY",
+    "envModel": "TOGETHER_MODEL",
+    "envBaseUrl": "TOGETHER_BASE_URL"
+  },
+  "deepinfra": {
+    "baseUrl": "https://api.deepinfra.com/v1/openai/",
+    "defaultModel": "meta-llama/Llama-3.2-11B-Vision-Instruct",
+    "envKey": "DEEPINFRA_API_KEY",
+    "envModel": "DEEPINFRA_MODEL",
+    "envBaseUrl": "DEEPINFRA_BASE_URL"
+  },
+  "xai": {
+    "baseUrl": "https://api.x.ai/v1/",
+    "defaultModel": "grok-4-latest",
+    "envKey": "XAI_API_KEY",
+    "envModel": "XAI_MODEL",
+    "envBaseUrl": "XAI_BASE_URL"
   }
 }
