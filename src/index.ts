@@ -12,9 +12,8 @@ import { PRESETS } from "./presets.js";
 import { DEFAULT_RETRY, DEFAULT_CONCURRENCY } from "./types.js";
 import type { GenericHttpProviderConfig, ProviderConfig, VisionProvider } from "./types.js";
 
-const BUILTIN_PROVIDERS = new Set(["openai", "anthropic", "google", "ollama"]);
-
-const BUILTINS = ["openai", "anthropic", "google", "ollama"];
+const BUILTINS = ["openai", "anthropic", "google", "ollama"] as const;
+const BUILTIN_PROVIDERS = new Set<string>(BUILTINS);
 
 export function validateDefaultProvider(
   defaultProvider: string,
@@ -107,7 +106,14 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
-  process.exit(1);
-});
+// Only run main() when this file is invoked as the entry point
+// (e.g., `node dist/index.js`). Importing it from a test must not
+// trigger the server — the imports are for validateDefaultProvider
+// and buildRegistry, not to boot a process.
+const invokedDirectly = import.meta.url === `file://${process.argv[1]}`;
+if (invokedDirectly) {
+  main().catch((err) => {
+    console.error("Fatal error:", err);
+    process.exit(1);
+  });
+}
