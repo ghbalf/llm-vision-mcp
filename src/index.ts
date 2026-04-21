@@ -20,6 +20,20 @@ export function validateDefaultProvider(
   registered: string[],
 ): void {
   if (registered.includes(defaultProvider)) return;
+  const preset = PRESETS[defaultProvider];
+  if (preset) {
+    throw new Error(
+      `Preset "${defaultProvider}" is known but not active — ` +
+        `${preset.envKey} is not set. Export it or use --api-key.`,
+    );
+  }
+  if ((BUILTINS as readonly string[]).includes(defaultProvider)) {
+    throw new Error(
+      `Builtin provider "${defaultProvider}" is known but not active — ` +
+        `no API key was found. Set the vendor's standard env var ` +
+        `(e.g., OPENAI_API_KEY, ANTHROPIC_API_KEY) or use --api-key.`,
+    );
+  }
   const presetNames = Object.keys(PRESETS).join(", ");
   const builtinNames = BUILTINS.join(", ");
   throw new Error(

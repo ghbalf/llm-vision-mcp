@@ -36,9 +36,35 @@ describe("validateDefaultProvider", () => {
   });
 
   it("handles an empty registered list (no providers configured)", () => {
-    expect(() => validateDefaultProvider("openai", [])).toThrow(
-      /Unknown provider "openai"/,
+    expect(() => validateDefaultProvider("nosuchprovider", [])).toThrow(
+      /Unknown provider "nosuchprovider"/,
     );
+  });
+
+  it("throws a preset-specific message when defaultProvider is a known preset but not registered", () => {
+    let caught: Error | undefined;
+    try {
+      validateDefaultProvider("moonshot", ["openai"]);
+    } catch (e) {
+      caught = e as Error;
+    }
+    expect(caught).toBeDefined();
+    expect(caught!.message).toContain("Preset \"moonshot\"");
+    expect(caught!.message).toContain("MOONSHOT_API_KEY");
+    // Should NOT list all presets/builtins — the problem is specific.
+    expect(caught!.message).not.toContain("Known presets:");
+  });
+
+  it("throws a builtin-specific message when defaultProvider is a known builtin but not registered", () => {
+    let caught: Error | undefined;
+    try {
+      validateDefaultProvider("anthropic", ["openai"]);
+    } catch (e) {
+      caught = e as Error;
+    }
+    expect(caught).toBeDefined();
+    expect(caught!.message).toContain("Builtin provider \"anthropic\"");
+    expect(caught!.message).toContain("ANTHROPIC_API_KEY");
   });
 });
 
