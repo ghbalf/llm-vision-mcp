@@ -235,9 +235,12 @@ describe("loadConfig", () => {
     });
 
     it("--model beats MOONSHOT_MODEL", () => {
+      // Both the env value and the CLI value are distinct from the preset
+      // default (kimi-k2.5), so this test catches both "env wins over CLI"
+      // regressions AND "preset always wins" regressions.
       process.env.MOONSHOT_MODEL = "kimi-k2.6";
-      const config = loadConfig(["--model", "kimi-k2.5"]);
-      expect(config.providers.moonshot?.model).toBe("kimi-k2.5");
+      const config = loadConfig(["--model", "kimi-custom-vision"]);
+      expect(config.providers.moonshot?.model).toBe("kimi-custom-vision");
     });
 
     it("--base-url beats MOONSHOT_BASE_URL", () => {
