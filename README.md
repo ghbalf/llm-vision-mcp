@@ -182,6 +182,8 @@ Configuration sources are loaded in this order (later overrides earlier):
 --ollama-base-url <url>        Ollama URL (default: http://localhost:11434)
 --ollama-model <model>         Ollama model (default: llava)
 --model <model>                Default model for the default provider
+--timeout <ms>                 Request timeout for the default provider
+--ollama-timeout <ms>          Request timeout for Ollama (default: 120000)
 --config <path>                Path to config file
 ```
 
@@ -194,6 +196,8 @@ ANTHROPIC_API_KEY=sk-ant-...
 GOOGLE_API_KEY=AIza...
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llava
+VISION_TIMEOUT_MS=60000          # default provider timeout
+OLLAMA_TIMEOUT_MS=300000         # bump for slow local models
 VISION_CONFIG_PATH=./vision-config.json
 ```
 

@@ -31,6 +31,15 @@ interface CliArgs {
   ollamaModel?: string;
   model?: string;
   config?: string;
+  timeout?: number;
+  ollamaTimeout?: number;
+}
+
+function parsePositiveMs(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return Math.round(n);
 }
 
 function parseCli(argv: string[]): CliArgs {
@@ -45,6 +54,8 @@ function parseCli(argv: string[]): CliArgs {
       "ollama-model": { type: "string" },
       model: { type: "string" },
       config: { type: "string" },
+      timeout: { type: "string" },
+      "ollama-timeout": { type: "string" },
     },
     strict: false,
   });
@@ -57,6 +68,8 @@ function parseCli(argv: string[]): CliArgs {
     ollamaModel: values["ollama-model"] as string | undefined,
     model: values.model as string | undefined,
     config: values.config as string | undefined,
+    timeout: parsePositiveMs(values.timeout as string | undefined),
+    ollamaTimeout: parsePositiveMs(values["ollama-timeout"] as string | undefined),
   };
 }
 
@@ -82,15 +95,26 @@ export function loadConfig(argv: string[]): AppConfig {
   if (process.env.GOOGLE_API_KEY) {
     envProviders.google = { apiKey: process.env.GOOGLE_API_KEY };
   }
-  if (process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL) {
+  const envOllamaTimeout = parsePositiveMs(process.env.OLLAMA_TIMEOUT_MS);
+  if (process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL || envOllamaTimeout !== undefined) {
     envProviders.ollama = {
       baseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
       model: process.env.OLLAMA_MODEL,
+      ...(envOllamaTimeout !== undefined ? { timeout: envOllamaTimeout } : {}),
+    };
+  }
+
+  const envDefaultProvider = process.env.VISION_DEFAULT_PROVIDER ?? "openai";
+  const envTimeout = parsePositiveMs(process.env.VISION_TIMEOUT_MS);
+  if (envTimeout !== undefined && envProviders[envDefaultProvider]) {
+    envProviders[envDefaultProvider] = {
+      ...envProviders[envDefaultProvider],
+      timeout: envTimeout,
     };
   }
 
   let config: AppConfig = {
-    defaultProvider: process.env.VISION_DEFAULT_PROVIDER ?? "openai",
+    defaultProvider: envDefaultProvider,
     providers: envProviders,
     preprocessing: { ...DEFAULT_PREPROCESSING },
   };
@@ -107,16 +131,28 @@ export function loadConfig(argv: string[]): AppConfig {
   if (cli.googleApiKey) {
     config.providers.google = { ...config.providers.google, apiKey: cli.googleApiKey };
   }
-  if (cli.ollamaBaseUrl || cli.ollamaModel) {
+  if (cli.ollamaBaseUrl || cli.ollamaModel || cli.ollamaTimeout !== undefined) {
     config.providers.ollama = {
       ...config.providers.ollama,
       baseUrl: cli.ollamaBaseUrl ?? config.providers.ollama?.baseUrl ?? "http://localhost:11434",
       model: cli.ollamaModel ?? config.providers.ollama?.model,
+      ...(cli.ollamaTimeout !== undefined
+        ? { timeout: cli.ollamaTimeout }
+        : config.providers.ollama?.timeout !== undefined
+          ? { timeout: config.providers.ollama.timeout }
+          : {}),
     };
   }
   if (cli.model) {
     const defaultProv = config.defaultProvider;
     config.providers[defaultProv] = { ...config.providers[defaultProv], model: cli.model };
+  }
+  if (cli.timeout !== undefined) {
+    const defaultProv = config.defaultProvider;
+    config.providers[defaultProv] = {
+      ...config.providers[defaultProv],
+      timeout: cli.timeout,
+    };
   }
 
   // Step 4: Config file (highest priority for provider settings)
