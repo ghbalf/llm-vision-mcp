@@ -119,5 +119,14 @@ describe("loadConfig", () => {
       // Did not leak onto anthropic
       expect(config.providers.anthropic?.apiKey).toBeUndefined();
     });
+
+    it("--api-key wins when both --openai-api-key and --api-key are passed", () => {
+      const config = loadConfig([
+        "--provider", "openai",
+        "--openai-api-key", "sk-vendor-specific",
+        "--api-key", "sk-generic-wins",
+      ]);
+      expect(config.providers.openai?.apiKey).toBe("sk-generic-wins");
+    });
   });
 });
