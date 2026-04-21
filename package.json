@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node -e \"require('node:fs').copyFileSync('src/presets.json','dist/presets.json')\"",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "test": "vitest run",

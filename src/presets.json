@@ -1,0 +1,9 @@
+{
+  "moonshot": {
+    "baseUrl": "https://api.moonshot.ai/v1",
+    "defaultModel": "kimi-k2.5",
+    "envKey": "MOONSHOT_API_KEY",
+    "envModel": "MOONSHOT_MODEL",
+    "envBaseUrl": "MOONSHOT_BASE_URL"
+  }
+}
