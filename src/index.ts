@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadConfig } from "./config.js";
 import { createServer } from "./server.js";
@@ -124,7 +126,9 @@ async function main() {
 // (e.g., `node dist/index.js`). Importing it from a test must not
 // trigger the server — the imports are for validateDefaultProvider
 // and buildRegistry, not to boot a process.
-const invokedDirectly = import.meta.url === `file://${process.argv[1]}`;
+const invokedDirectly =
+  process.argv[1] != null &&
+  fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 if (invokedDirectly) {
   main().catch((err) => {
     console.error("Fatal error:", err);
